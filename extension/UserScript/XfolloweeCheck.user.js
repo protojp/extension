@@ -15,6 +15,6 @@
 
     setInterval(() => {
         $("div[data-testid='cellInnerDiv']").has("span:contains('フォローされています')").remove();
-    }, 2000);
+    }, 1000);
 
 })();
