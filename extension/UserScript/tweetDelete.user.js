@@ -1,9 +1,20 @@
+// ==UserScript==
+// @name         X投稿削除
+// @namespace    proto.jp
+// @version      0.1
+// @description  X投稿削除
+// @author       proto.jp
+// @match        https://twitter.com/*
+// @icon         https://www.google.com/s2/favicons?sz=64&domain=twitter.com
+// @require      https://ajax.googleapis.com/ajax/libs/jquery/3.6.4/jquery.min.js
+// @grant        none
+// ==/UserScript==
+
+(function() {
   // 'use strict';
   // Your code here...
 
   let timerId = setInterval(() => {
-
-    console.log($('a[href="/i/flow/setup_profile"]').length);
 
     //プロフィールページ判定
     if($('a[href="/i/flow/setup_profile"]').length)
@@ -22,7 +33,7 @@
       deleteCount = parseInt(deleteCount,10);
 
       if(!deleteCount)return;
-      
+
       deleteCount = deleteCount > 100 ? 100 : deleteCount;
 
       // console.log(deleteCount);
@@ -54,5 +65,7 @@
       }, delay*deleteCount*1.5+Math.random()*1000*60);
 
     }
-        
+
   }, 3000);
+
+})();
