@@ -150,54 +150,69 @@ eagle.onPluginCreate(async(plugin) => {
 				};
 				metadata.images.push(imageMetadata);
 
-			} catch (err) {
-				console.warn(`画像の処理中にエラーが発生しました: ${item.filePath}`, err);
-			}
+			} catch (error) {
+				console.error("エラーが発生しました:", error);
+			  }
 		}
 
-		// メタデータ格納処理
 		function parseMetadata(text) {
-			const meta = {
-			  prompt: "",
-			  Negative_prompt: "",
-			  Lora_hashes: {}
+			// Helper function to extract value from text
+			const extractValue = (text, key) => {
+			  const regex = new RegExp(`${key}: ([^,]+)`);
+			  const match = text.match(regex);
+			  return match ? match[1].trim() : null;
 			};
 		  
-			const parts = text.split("Negative prompt:");
-			if (parts.length > 1) {
-			  meta.prompt = parts[0].trim();
-			  const negativeAndParams = parts[1].split(', ');
-			  
-			  meta.Negative_prompt = negativeAndParams[0].trim();
-			  
-			  let currentKey = "";
-			  negativeAndParams.slice(1).forEach(part => {
-				const [key, value] = part.split(': ');
-				if (value === undefined) {
-				  if (currentKey) {
-					meta[currentKey] += ", " + key.trim();
-				  }
-				} else {
-				  currentKey = key.trim().replace(/\s+/g, '_');
-				  if (currentKey === "Lora_hashes") {
-					const hashes = value.match(/"([^"]+)":\s*([^,]+)/g);
-					if (hashes) {
-					  hashes.forEach(hash => {
-						const [name, hashValue] = hash.replace(/"/g, '').split(':').map(item => item.trim());
-						meta.Lora_hashes[name] = hashValue;
-					  });
-					}
-				  } else if (!isNaN(value) && currentKey !== "Size" && currentKey !== "Version") {
-					meta[currentKey] = Number(value);
-				  } else {
-					meta[currentKey] = value.replace(/^"|"$/g, '').trim();
-				  }
-				}
-			  });
+			// Extract values from the input text
+			const promptParts = text.split('Negative prompt:');
+			const prompt = promptParts[0].trim();
+			const negativePromptParts = (promptParts[1] || '').split('Steps:');
+			const negativePrompt = negativePromptParts[0].trim();
+		  
+			// Lora hashes の抽出
+			let loraHashesObject = {};
+			const loraHashesMatch = text.match(/Lora hashes: (.+?(?=, Version:|$))/);
+			if (loraHashesMatch) {
+				const loraHashes = loraHashesMatch[1].trim();
+				loraHashesObject = loraHashes.replace(/"/g, '').split(', ').reduce((acc, hash) => {
+				const [key, value] = hash.split(': ');
+				acc[key] = value;
+				return acc;
+				}, {});
 			}
-			return { meta };
-		  }
 
+			// Versionを別に抽出
+			const version = extractValue(text, 'Version');
+
+			// Create the output JSON
+			const outputJson = {
+				meta: {
+					prompt: prompt,
+					Negative_prompt: negativePrompt,
+					Steps: parseInt(extractValue(text, 'Steps'), 10),
+					Sampler: extractValue(text, 'Sampler'),
+					Schedule_type: extractValue(text, 'Schedule type'),
+					CFG_scale: parseFloat(extractValue(text, 'CFG scale')),
+					Seed: parseInt(extractValue(text, 'Seed'), 10),
+					Size: extractValue(text, 'Size'),
+					Model: extractValue(text, 'Model'),
+					VAE_hash: extractValue(text, 'VAE hash'),
+					VAE: extractValue(text, 'VAE'),
+					Variation_seed: parseInt(extractValue(text, 'Variation seed'), 10),
+					Variation_seed_strength: parseFloat(extractValue(text, 'Variation seed strength')),
+					Denoising_strength: parseFloat(extractValue(text, 'Denoising strength')),
+					Clip_skip: parseInt(extractValue(text, 'Clip skip'), 10),
+					ENSD: parseInt(extractValue(text, 'ENSD'), 10),
+					Hires_upscale: parseFloat(extractValue(text, 'Hires upscale')),
+					Hires_steps: parseInt(extractValue(text, 'Hires steps'), 10),
+					Hires_upscaler: extractValue(text, 'Hires upscaler'),
+					Lora_hashes: loraHashesObject,
+					Version: version
+				  }
+			};
+
+			return outputJson;
+		}
 		
 		// タイル状の画像を作成
 		const tilesPerRow = Math.ceil(Math.sqrt(processedImages.length));
