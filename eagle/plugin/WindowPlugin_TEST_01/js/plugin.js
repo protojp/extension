@@ -29,7 +29,7 @@ eagle.onPluginCreate(async(plugin) => {
 
 
 	const targetRatings = [3, 2];
-	const targetDate = new Date('2024-07-01');
+	const targetDate = new Date('2024-07-03');
 	const outputFolder = 'D:/Download';
 	const maxImages = 9;
 	const watermarkPath = 'E:\\Dropbox\\@Watermark\\@proto_jp.png';
@@ -156,37 +156,73 @@ eagle.onPluginCreate(async(plugin) => {
 		}
 
 		function parseMetadata(text) {
-			// Helper function to extract value from text
 			const extractValue = (text, key) => {
-			  const regex = new RegExp(`${key}: ([^,]+)`);
-			  const match = text.match(regex);
-			  return match ? match[1].trim() : null;
+				const regex = new RegExp(`${key}: (.*?)(?=, (?:[A-Z]|ADetailer)|$)`, 's');
+				const match = text.match(regex);
+				return match ? match[1].trim() : null;
 			};
-		  
-			// Extract values from the input text
-			const promptParts = text.split('Negative prompt:');
-			const prompt = promptParts[0].trim();
-			const negativePromptParts = (promptParts[1] || '').split('Steps:');
-			const negativePrompt = negativePromptParts[0].trim();
-		  
-			// Lora hashes の抽出
-			let loraHashesObject = {};
-			const loraHashesMatch = text.match(/Lora hashes: (.+?(?=, Version:|$))/);
-			if (loraHashesMatch) {
-				const loraHashes = loraHashesMatch[1].trim();
-				loraHashesObject = loraHashes.replace(/"/g, '').split(', ').reduce((acc, hash) => {
-				const [key, value] = hash.split(': ');
-				acc[key] = value;
-				return acc;
-				}, {});
-			}
-
-			// Versionを別に抽出
-			const version = extractValue(text, 'Version');
-
-			// Create the output JSON
-			const outputJson = {
-				meta: {
+		
+			const isADetailer = text.includes('ADetailer model:');
+		
+			let outputJson = {};
+		
+			if (isADetailer) {
+				const aDetailerFields = [
+					'model', 'prompt', 'negative prompt', 'confidence', 'dilate erode', 
+					'mask blur', 'denoising strength', 'inpaint only masked', 
+					'inpaint padding', 'use separate VAE', 'VAE', 'version'
+				];
+		
+				outputJson = {
+					Steps: parseInt(extractValue(text, 'Steps'), 10),
+					Sampler: extractValue(text, 'Sampler'),
+					Schedule_type: extractValue(text, 'Schedule type'),
+					CFG_scale: parseFloat(extractValue(text, 'CFG scale')),
+					Seed: parseInt(extractValue(text, 'Seed'), 10),
+					Size: extractValue(text, 'Size'),
+					Model: extractValue(text, 'Model'),
+					VAE_hash: extractValue(text, 'VAE hash'),
+					VAE: extractValue(text, 'VAE'),
+					Denoising_strength: parseFloat(extractValue(text, 'Denoising strength')),
+					Clip_skip: parseInt(extractValue(text, 'Clip skip'), 10),
+					Noise_multiplier: parseFloat(extractValue(text, 'Noise multiplier')),
+					Version: extractValue(text, 'Version'),
+					ADetailer: {}
+				};
+		
+				aDetailerFields.forEach(field => {
+					const value = extractValue(text, `ADetailer ${field}`);
+					if (value !== null) {
+						let key = field.replace(/ /g, '_');
+						if (field === 'inpaint only masked' || field === 'use separate VAE') {
+							outputJson.ADetailer[key] = value === 'True';
+						} else if (['confidence', 'denoising strength'].includes(field)) {
+							outputJson.ADetailer[key] = parseFloat(value);
+						} else if (['dilate erode', 'mask blur', 'inpaint padding'].includes(field)) {
+							outputJson.ADetailer[key] = parseInt(value, 10);
+						} else {
+							outputJson.ADetailer[key] = value;
+						}
+					}
+				});
+			} else {
+				const promptParts = text.split('Negative prompt:');
+				const prompt = promptParts[0].trim();
+				const negativePromptParts = (promptParts[1] || '').split('Steps:');
+				const negativePrompt = negativePromptParts[0].trim();
+		
+				let loraHashesObject = {};
+				const loraHashesMatch = text.match(/Lora hashes: (.+?(?=, Version:|$))/);
+				if (loraHashesMatch) {
+					const loraHashes = loraHashesMatch[1].trim();
+					loraHashesObject = loraHashes.replace(/"/g, '').split(', ').reduce((acc, hash) => {
+						const [key, value] = hash.split(': ');
+						acc[key] = value;
+						return acc;
+					}, {});
+				}
+		
+				outputJson = {
 					prompt: prompt,
 					Negative_prompt: negativePrompt,
 					Steps: parseInt(extractValue(text, 'Steps'), 10),
@@ -207,10 +243,10 @@ eagle.onPluginCreate(async(plugin) => {
 					Hires_steps: parseInt(extractValue(text, 'Hires steps'), 10),
 					Hires_upscaler: extractValue(text, 'Hires upscaler'),
 					Lora_hashes: loraHashesObject,
-					Version: version
-				  }
-			};
-
+					Version: extractValue(text, 'Version')
+				};
+			}
+		
 			return outputJson;
 		}
 		
