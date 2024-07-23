@@ -1,32 +1,32 @@
 
 eagle.onPluginCreate(async(plugin) => {
 
+
+
+
+	// console.log('eagle.onPluginCreate');
+	// console.log(plugin);
+
+	// document.querySelector('#message').innerHTML = `
+	// テストテスト<br>
+	// <ul>
+	// 	<li>id: ${plugin.manifest.id}</li>
+	// 	<li>version: ${plugin.manifest.version}</li>
+	// 	<li>name: ${plugin.manifest.name}</li>
+	// 	<li>logo: ${plugin.manifest.logo}</li>
+	// 	<li>path: ${plugin.path}</li>
+	// </ul>
+	// `;
+
+	console.log("!!START!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+	// console.log(eagle);
+
+
+	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	const fs = require('fs');
 	const path = require('path');
 	const archiver = require('archiver');
 	const Jimp = require('jimp');
-
-
-	console.log('eagle.onPluginCreate');
-	console.log(plugin);
-
-	document.querySelector('#message').innerHTML = `
-	テストテスト<br>
-	<ul>
-		<li>id: ${plugin.manifest.id}</li>
-		<li>version: ${plugin.manifest.version}</li>
-		<li>name: ${plugin.manifest.name}</li>
-		<li>logo: ${plugin.manifest.logo}</li>
-		<li>path: ${plugin.path}</li>
-	</ul>
-	`;
-
-	console.log("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
-	console.log(eagle);
-
-
-	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
 
 	const targetRatings = [3, 2];
 	const targetDate = new Date('2024-07-03');
@@ -67,7 +67,7 @@ eagle.onPluginCreate(async(plugin) => {
 			return;
 		}
 	
-		const outputFileName = `images_${new Date().toISOString().replace(/[:.]/g, '-')}`;
+		const outputFileName = targetDate.toISOString().split('T')[0]; // YYYY-MM-DD形式
 		const outputPath = path.join(outputFolder, `${outputFileName}.zip`);
 		const tiledImagePath = path.join(outputFolder, `${outputFileName}_tiled.jpg`);
 	
@@ -103,14 +103,25 @@ eagle.onPluginCreate(async(plugin) => {
 			},
 			images: []
 		};
+
+		function getSeedFromAnnotation(annotation) {
+			if (!annotation) return null;
+			const seedMatch = annotation.match(/Seed: (\d+)/);
+			return seedMatch ? seedMatch[1] : null;
+		}
 		
 		for (let i = 0; i < filteredItems.length; i++) {
 			try {
 				const item = filteredItems[i];
 				const filePath = item.filePath;
-				const itemDate = new Date(item.importedAt);
-				const formattedDate = itemDate.toISOString().split('T')[0];
-				const newFileName = `${formattedDate}_${(i + 1).toString().padStart(3, '0')}_rate${item.star}.jpg`;
+				const seed = getSeedFromAnnotation(item.annotation);
+				let newFileName;
+				
+				if (seed) {
+					newFileName = `${(i + 1).toString().padStart(3, '0')}_${seed}.jpg`;
+				} else {
+					newFileName = `${(i + 1).toString().padStart(3, '0')}_rate${item.star}.jpg`;
+				}
 		
 				const image = await Jimp.read(filePath);
 				
