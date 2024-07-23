@@ -29,10 +29,10 @@ eagle.onPluginCreate(async(plugin) => {
 	const Jimp = require('jimp');
 	
 	const targetRatings = [4,3];
-	const startDate = new Date('2024-07-03');  // 開始日
-	const endDate = new Date('2024-07-06');    // 終了日
-	const baseOutputFolder = 'D:/Download';    // 基本出力フォルダ
-	const maxImages = 9;
+	const startDate = new Date('2024-07-06');	// 開始日
+	const endDate = new Date('2024-07-09');		// 終了日
+	const baseOutputFolder = 'D:/Download';		// 基本出力フォルダ
+	const maxImages = 9;						// 最大取得画像枚数
 	const watermarkPath = 'E:\\Dropbox\\@Watermark\\@proto_jp.png';
 	const tileSize = 500; // 各タイルの辺の長さ（ピクセル）
 	
@@ -65,6 +65,14 @@ eagle.onPluginCreate(async(plugin) => {
 				console.log('条件に合う画像が見つかりませんでした。');
 				return;
 			}
+
+			const confirmMessage = `${filteredItems.length}枚の画像を処理します。続行しますか？`;
+			const shouldContinue = confirm(confirmMessage);
+	
+			if (!shouldContinue) {
+				console.log('処理がキャンセルされました。');
+				return;
+			}
 	
 			const groupedItems = groupItemsByDate(filteredItems);
 			console.log(`日付ごとのグループ数: ${Object.keys(groupedItems).length}`);
@@ -80,7 +88,7 @@ eagle.onPluginCreate(async(plugin) => {
 			{
 				console.log(`${dateString}の処理を開始します... (${dateItems.length}個のアイテム)`);
 	
-				// 各日付ごとに最大9枚の画像を選択
+
 				const selectedItems = dateItems.sort((a, b) => b.star - a.star).slice(0, maxImages);
 	
 				const [year, month, day] = dateString.split('-');
