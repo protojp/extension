@@ -116,7 +116,7 @@ eagle.onPluginCreate(async(plugin) => {
 				const filePath = item.filePath;
 				const seed = getSeedFromAnnotation(item.annotation);
 				let newFileName;
-				
+
 				if (seed) {
 					newFileName = `${(i + 1).toString().padStart(3, '0')}_${seed}.jpg`;
 				} else {
@@ -124,6 +124,9 @@ eagle.onPluginCreate(async(plugin) => {
 				}
 		
 				const image = await Jimp.read(filePath);
+				// 元の画像サイズを取得
+				const originalWidth = image.getWidth();
+				const originalHeight = image.getHeight();
 				
 				// 元の画像にウォーターマークを追加
 				let x = image.getWidth() - watermark.getWidth() - watermarkConfig.marginX;
@@ -155,8 +158,8 @@ eagle.onPluginCreate(async(plugin) => {
 
 				const imageMetadata = {
 					filename: newFileName,
-					width: image.bitmap.width,
-					height: image.bitmap.height,
+					width: originalWidth,
+					height: originalHeight,
 					meta: parseMetadata(item.annotation || "")
 				};
 				metadata.images.push(imageMetadata);
