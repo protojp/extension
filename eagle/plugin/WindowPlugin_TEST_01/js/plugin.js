@@ -1,9 +1,6 @@
 
-eagle.onPluginCreate(async(plugin) => {
-
-
-
-
+eagle.onPluginCreate(async(plugin) => 
+{
 	// console.log('eagle.onPluginCreate');
 	// console.log(plugin);
 
@@ -21,21 +18,20 @@ eagle.onPluginCreate(async(plugin) => {
 	console.log("!!START!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
 	// console.log(eagle);
 
-
 	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	const fs = require('fs');
 	const path = require('path');
 	const archiver = require('archiver');
 	const Jimp = require('jimp');
 	
-	const targetRatings = [4,3];
-	const startDate = new Date('2024-07-06');	// 開始日
-	const endDate = new Date('2024-07-09');		// 終了日
-	const baseOutputFolder = 'D:/Download';		// 基本出力フォルダ
-	const maxImages = 9;						// 最大取得画像枚数
+	const targetRatings = [3,2];
+	const startDate = new Date('2024-07-01');	// 開始日
+	const endDate = new Date('2024-07-03');		// 終了日
+	const baseOutputFolder = 'E:/SD_IMGS';		// 基本出力フォルダ
+	const maxImages = 16;						// 最大取得画像枚数
 	const watermarkPath = 'E:\\Dropbox\\@Watermark\\@proto_jp.png';
 	const tileSize = 500; // 各タイルの辺の長さ（ピクセル）
-	
+
 	// ウォーターマークの設定（デフォルト値）
 	const watermarkConfig = {
 		width: 300,
@@ -52,11 +48,28 @@ eagle.onPluginCreate(async(plugin) => {
 			console.log("画像の取得を開始します...");
 			const items = await eagle.item.get();
 			console.log(`${items.length}個のアイテムを取得しました。`);
+
+			const processedSeeds = new Set(); // 処理済みのseed値を追跡するためのSet
 	
 			const filteredItems = items.filter(item => {
 				const itemDate = new Date(item.importedAt);
-				return targetRatings.includes(item.star) && 
-					   itemDate >= startDate && itemDate <= endDate;
+				const seed = getSeedFromAnnotation(item.annotation);
+				
+				if (targetRatings.includes(item.star) && 
+					itemDate >= startDate && 
+					itemDate < new Date(endDate.getTime() + 86400000)) {
+					
+					if (seed) {
+						if (processedSeeds.has(seed)) {
+							return false; // 既に処理済みのseed値なのでスキップ
+						} else {
+							processedSeeds.add(seed); // 新しいseed値を追加
+							return true;
+						}
+					}
+					return true; // seed値がない場合は常に含める
+				}
+				return false;
 			});
 	
 			console.log(`フィルタリング後のアイテム数: ${filteredItems.length}`);
@@ -359,20 +372,12 @@ eagle.onPluginCreate(async(plugin) => {
 	
 	// 実行
 	(async () => {
-		console.log("!!START!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
 		try {
 			await processImages();
 		} catch (error) {
 			console.error("プログラムの実行中にエラーが発生しました:", error);
 		}
-		console.log("!!END!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
 	})();
-
-
-
-
-
-
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
