@@ -25,8 +25,8 @@ eagle.onPluginCreate(async(plugin) =>
 	const Jimp = require('jimp');
 
 	const targetRatings = [3, 2];
-	const startDate = new Date('2024-07-04'); // 開始日
-	const endDate = new Date('2024-07-05'); // 終了日
+	const startDate = new Date('2024-07-06'); // 開始日
+	const endDate = new Date('2024-07-07'); // 終了日
 	const baseOutputFolder = 'E:/SD_IMGS'; // 基本出力フォルダ
 	const maxImages = 16; // 最大取得画像枚数
 	const watermarkPath = 'E:\\Dropbox\\@Watermark\\@proto_jp.png';
@@ -128,18 +128,18 @@ eagle.onPluginCreate(async(plugin) =>
 	async function processDateItems(dateString, dateItems) {
 		const selectedItems = selectItems(dateItems);
 		const { outputFolder, outputPath, tiledImagePath } = createOutputPaths(dateString);
-
+	
 		createOutputFolder(outputFolder);
-
+	
 		const { archive, output, closePromise } = setupArchive(outputPath);
 		const watermark = await setupWatermark();
-
-		const { processedImages, metadata } = await processSelectedItems(selectedItems, watermark, outputFolder, archive);
-
+	
+		const { processedImages, metadata, tempFiles } = await processSelectedItems(selectedItems, watermark, outputFolder, archive);
+	
 		await createTiledImage(processedImages, tiledImagePath, metadata);
-
-		await finalizeArchive(archive, output, closePromise, tiledImagePath, metadata, outputFolder, dateString);
-
+	
+		await finalizeArchive(archive, output, closePromise, tiledImagePath, metadata, outputFolder, dateString, tempFiles);
+	
 		console.log(`処理された画像の数: ${selectedItems.length}`);
 	}
 
@@ -184,7 +184,7 @@ eagle.onPluginCreate(async(plugin) =>
 
 	async function processSelectedItems(selectedItems, watermark, outputFolder, archive) {
 		const processedImages = [];
-		const tempFiles = []; // tempFiles の宣言
+		const tempFiles = []; // 一時ファイルのパスを追跡するための配列
 		const metadata = initializeMetadata();
 	
 		for (let i = 0; i < selectedItems.length; i++) {
@@ -407,7 +407,7 @@ eagle.onPluginCreate(async(plugin) =>
 		console.log(`ZIPファイルが正常に保存されました: ${output.path}`);
 		console.log(`タイル状の画像が保存されました: ${tiledImagePath}`);
 	
-		removeTempFiles(tempFiles); // tempFiles を引数として渡す
+		removeTempFiles(tempFiles);
 	}
 
 	function saveMetadata(metadata, outputFolder, dateString) {
@@ -416,8 +416,8 @@ eagle.onPluginCreate(async(plugin) =>
 		console.log(`メタデータJSONファイルが保存されました: ${metadataPath}`);
 	}
 
-	function removeTempFiles(tempFiles) { // 引数として tempFiles を受け取る
-		if (Array.isArray(tempFiles)) { // tempFiles が配列か確認
+	function removeTempFiles(tempFiles) {
+		if (Array.isArray(tempFiles)) {
 			tempFiles.forEach(tempFilePath => {
 				try {
 					if (fs.existsSync(tempFilePath)) {
