@@ -24,9 +24,9 @@ eagle.onPluginCreate(async(plugin) =>
 	const archiver = require('archiver');
 	const Jimp = require('jimp');
 
-	const targetRatings = [3, 2];
-	const startDate = new Date('2024-07-06'); // 開始日
-	const endDate = new Date('2024-07-07'); // 終了日
+	const targetRatings = [3, 2,1];
+	const startDate = new Date('2024-02-01'); // 開始日
+	const endDate = new Date('2024-02-03'); // 終了日
 	const baseOutputFolder = 'E:/SD_IMGS'; // 基本出力フォルダ
 	const maxImages = 16; // 最大取得画像枚数
 	const watermarkPath = 'E:\\Dropbox\\@Watermark\\@proto_jp.png';
