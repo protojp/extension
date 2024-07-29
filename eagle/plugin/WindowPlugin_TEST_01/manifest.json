@@ -1,0 +1,15 @@
+{
+    "id": "e867a61a-a4bf-4a1d-8684-d61070cc3089",
+    "version": "1.0.0",
+    "platform": "all",
+    "arch": "all",
+    "name": "WindowPlugin_TEST_01",
+    "logo": "/logo.png",
+    "keywords": [],
+    "devTools": true,
+    "main": {
+        "url": "index.html",
+        "width": 1200,
+        "height": 600
+    }
+}
