@@ -24,11 +24,14 @@ eagle.onPluginCreate(async(plugin) =>
 	const archiver = require('archiver');
 	const Jimp = require('jimp');
 
-	const targetRatings = [3, 2,1];
+	const targetRatingsLv1 = [3, 2, 1];
+	const maxImagesLv1 = 4;
+	const targetRatingsLv2 = [3, 2]; // 例: Lv2はより高い評価の画像のみ
+	const maxImagesLv2 = 12; // 例: Lv2はより少ない画像数
+
 	const startDate = new Date('2024-02-01'); // 開始日
 	const endDate = new Date('2024-02-03'); // 終了日
 	const baseOutputFolder = 'E:/SD_IMGS'; // 基本出力フォルダ
-	const maxImages = 16; // 最大取得画像枚数
 	const watermarkPath = 'E:\\Dropbox\\@Watermark\\@proto_jp.png';
 	const tileSize = 500; // 各タイルの辺の長さ（ピクセル）
 
@@ -48,27 +51,38 @@ eagle.onPluginCreate(async(plugin) =>
 			console.log("画像の取得を開始します...");
 			const items = await eagle.item.get();
 			console.log(`${items.length}個のアイテムを取得しました。`);
-
-			const filteredItems = filterItems(items);
-			console.log(`フィルタリング後のアイテム数: ${filteredItems.length}`);
-
-			if (filteredItems.length === 0) {
+	
+			const processedSeeds = new Set();
+	
+			// Lv2の処理
+			const filteredItemsLv2 = filterItems(items, targetRatingsLv2, processedSeeds);
+			console.log(`Lv2フィルタリング後のアイテム数: ${filteredItemsLv2.length}`);
+	
+			if (filteredItemsLv2.length > 0) {
+				const groupedItemsLv2 = groupItemsByDate(filteredItemsLv2);
+				for (const [dateString, dateItems] of Object.entries(groupedItemsLv2)) {
+					console.log(`Lv2: ${dateString}の処理を開始します... (${dateItems.length}個のアイテム)`);
+					await processDateItems(dateString, dateItems, 'Lv2', maxImagesLv2, processedSeeds);
+				}
+			}
+	
+			// Lv1の処理
+			const filteredItemsLv1 = filterItems(items, targetRatingsLv1, processedSeeds);
+			console.log(`Lv1フィルタリング後のアイテム数: ${filteredItemsLv1.length}`);
+	
+			if (filteredItemsLv1.length > 0) {
+				const groupedItemsLv1 = groupItemsByDate(filterItems(items, targetRatingsLv1, processedSeeds));
+				for (const [dateString, dateItems] of Object.entries(groupedItemsLv1)) {
+					console.log(`Lv1: ${dateString}の処理を開始します... (${dateItems.length}個のアイテム)`);
+					await processDateItems(dateString, dateItems, 'Lv1', maxImagesLv1, processedSeeds);
+				}
+			}
+	
+			if (filteredItemsLv1.length === 0 && filteredItemsLv2.length === 0) {
 				console.log('条件に合う画像が見つかりませんでした。');
 				return;
 			}
-
-			if (!confirmProcessing(filteredItems.length)) {
-				console.log('処理がキャンセルされました。');
-				return;
-			}
-
-			const groupedItems = groupItemsByDate(filteredItems);
-			console.log(`日付ごとのグループ数: ${Object.keys(groupedItems).length}`);
-
-			for (const [dateString, dateItems] of Object.entries(groupedItems)) {
-				console.log(`${dateString}の処理を開始します... (${dateItems.length}個のアイテム)`);
-				await processDateItems(dateString, dateItems);
-			}
+	
 			console.log("すべての処理が完了しました。");
 		} catch (error) {
 			console.error('エラーが発生しました:', error);
@@ -76,13 +90,11 @@ eagle.onPluginCreate(async(plugin) =>
 		}
 	}
 
-	function filterItems(items) {
-		const processedSeeds = new Set(); // 処理済みのseed値を追跡するためのSet
-
+	function filterItems(items, targetRatings, processedSeeds) {
 		return items.filter(item => {
 			const itemDate = new Date(item.importedAt);
 			const seed = getSeedFromAnnotation(item.annotation);
-
+	
 			if (
 				targetRatings.includes(item.star) &&
 				itemDate >= startDate &&
@@ -90,13 +102,12 @@ eagle.onPluginCreate(async(plugin) =>
 			) {
 				if (seed) {
 					if (processedSeeds.has(seed)) {
-						return false; // 既に処理済みのseed値なのでスキップ
+						return false;
 					} else {
-						processedSeeds.add(seed); // 新しいseed値を追加
 						return true;
 					}
 				}
-				return true; // seed値がない場合は常に含める
+				return true;
 			}
 			return false;
 		});
@@ -125,32 +136,32 @@ eagle.onPluginCreate(async(plugin) =>
 		}, {});
 	}
 
-	async function processDateItems(dateString, dateItems) {
-		const selectedItems = selectItems(dateItems);
-		const { outputFolder, outputPath, tiledImagePath } = createOutputPaths(dateString);
+	async function processDateItems(dateString, dateItems, level, maxImages, processedSeeds) {
+		const selectedItems = selectItems(dateItems, maxImages);
+		const { outputFolder, outputPath, tiledImagePath } = createOutputPaths(dateString, level);
 	
 		createOutputFolder(outputFolder);
 	
 		const { archive, output, closePromise } = setupArchive(outputPath);
 		const watermark = await setupWatermark();
 	
-		const { processedImages, metadata, tempFiles } = await processSelectedItems(selectedItems, watermark, outputFolder, archive);
+		const { processedImages, metadata, tempFiles } = await processSelectedItems(selectedItems, watermark, outputFolder, archive, processedSeeds);
 	
 		await createTiledImage(processedImages, tiledImagePath, metadata);
 	
 		await finalizeArchive(archive, output, closePromise, tiledImagePath, metadata, outputFolder, dateString, tempFiles);
 	
-		console.log(`処理された画像の数: ${selectedItems.length}`);
+		console.log(`${level}: 処理された画像の数: ${selectedItems.length}`);
 	}
 
-	function selectItems(dateItems) {
+	function selectItems(dateItems, maxImages) {
 		return dateItems.sort((a, b) => b.star - a.star).slice(0, maxImages);
 	}
 
-	function createOutputPaths(dateString) {
+	function createOutputPaths(dateString, level) {
 		const [year, month, day] = dateString.split('-');
 		const outputFolder = path.join(baseOutputFolder, year, month);
-		const outputFileName = dateString;
+		const outputFileName = `${dateString}_${level}`;
 		const outputPath = path.join(outputFolder, `${outputFileName}.zip`);
 		const tiledImagePath = path.join(outputFolder, `${outputFileName}_tiled.jpg`);
 		return { outputFolder, outputPath, tiledImagePath };
@@ -182,28 +193,38 @@ eagle.onPluginCreate(async(plugin) =>
 		return watermark;
 	}
 
-	async function processSelectedItems(selectedItems, watermark, outputFolder, archive) {
-		const processedImages = [];
-		const tempFiles = []; // 一時ファイルのパスを追跡するための配列
-		const metadata = initializeMetadata();
-	
-		for (let i = 0; i < selectedItems.length; i++) {
-			try {
-				const item = selectedItems[i];
-				const { filePath, newFileName, image, tempFilePath } = await processSingleItem(item, i, watermark, outputFolder);
-	
-				archive.file(filePath, { name: newFileName });
-	
-				processedImages.push(image);
-				metadata.images.push(extractImageMetadata(item, newFileName, image));
-	
-				tempFiles.push(tempFilePath); // 一時ファイルのパスを保存
-			} catch (error) {
-				console.error("エラーが発生しました:", error);
-			}
-		}
-		return { processedImages, metadata, tempFiles }; // tempFiles を返す
-	}
+async function processSelectedItems(selectedItems, watermark, outputFolder, archive, processedSeeds) {
+    const processedImages = [];
+    const tempFiles = [];
+    const metadata = initializeMetadata();
+
+    for (let i = 0; i < selectedItems.length; i++) {
+        try {
+            const item = selectedItems[i];
+            const seed = getSeedFromAnnotation(item.annotation);
+            
+            if (seed && processedSeeds.has(seed)) {
+                continue; // 既に処理済みのseedはスキップ
+            }
+
+            const { filePath, newFileName, image, tempFilePath } = await processSingleItem(item, i, watermark, outputFolder);
+
+            archive.file(filePath, { name: newFileName });
+
+            processedImages.push(image);
+            metadata.images.push(extractImageMetadata(item, newFileName, image));
+
+            tempFiles.push(tempFilePath);
+
+            if (seed) {
+                processedSeeds.add(seed); // 処理したseedを追加
+            }
+        } catch (error) {
+            console.error("エラーが発生しました:", error);
+        }
+    }
+    return { processedImages, metadata, tempFiles };
+}
 
 	function initializeMetadata() {
 		return {
