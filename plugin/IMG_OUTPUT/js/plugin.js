@@ -24,14 +24,14 @@ eagle.onPluginCreate(async(plugin) =>
 	const archiver = require('archiver');
 	const Jimp = require('jimp');
 
-	const targetRatingsLv1 = [3, 2, 1];
+	const targetRatingsLv1 = [2,1];
 	const maxImagesLv1 = 4;
-	const targetRatingsLv2 = [3, 2]; // 例: Lv2はより高い評価の画像のみ
-	const maxImagesLv2 = 12; // 例: Lv2はより少ない画像数
+	const targetRatingsLv2 = [3,2,1]; // 例: Lv2はより高い評価の画像も入れる
+	const maxImagesLv2 = 16; 
 
 	const startDate = new Date('2024-02-01'); // 開始日
-	const endDate = new Date('2024-02-03'); // 終了日
-	const baseOutputFolder = 'E:/SD_IMGS'; // 基本出力フォルダ
+	const endDate = new Date('2024-02-02'); // 終了日
+	const baseOutputFolder = 'E:\\SD_IMGS\\Discord'; // 基本出力フォルダ
 	const watermarkPath = 'E:\\Dropbox\\@Watermark\\@proto_jp.png';
 	const tileSize = 500; // 各タイルの辺の長さ（ピクセル）
 
@@ -137,7 +137,12 @@ eagle.onPluginCreate(async(plugin) =>
 	}
 
 	async function processDateItems(dateString, dateItems, level, maxImages, processedSeeds, jsonLevel) {
-		const selectedItems = selectItems(dateItems, maxImages);
+		const selectedItems = selectItems(dateItems, maxImages, processedSeeds);
+		if (selectedItems.length < maxImages) {
+			console.error(`エラー: ${dateString}の${level}レベルで重複しない画像が${maxImages}枚見つかりませんでした。`);
+			return;
+		}
+
 		const { outputFolder, outputPath, tiledImagePath } = createOutputPaths(dateString, level);
 	
 		createOutputFolder(outputFolder);
@@ -154,8 +159,15 @@ eagle.onPluginCreate(async(plugin) =>
 		console.log(`${level}: 処理された画像の数: ${selectedItems.length}`);
 	}
 
-	function selectItems(dateItems, maxImages) {
-		return dateItems.sort((a, b) => b.star - a.star).slice(0, maxImages);
+	function selectItems(dateItems, maxImages, processedSeeds) {
+		const uniqueItems = dateItems.filter(item => {
+			const seed = getSeedFromAnnotation(item.annotation);
+			return !(seed && processedSeeds.has(seed));
+		});
+
+		const selectedItems = uniqueItems.sort((a, b) => b.star - a.star).slice(0, maxImages);
+
+		return selectedItems;
 	}
 
 	function createOutputPaths(dateString, level) {
@@ -203,10 +215,6 @@ eagle.onPluginCreate(async(plugin) =>
 				const item = selectedItems[i];
 				const seed = getSeedFromAnnotation(item.annotation);
 				
-				if (seed && processedSeeds.has(seed)) {
-					continue; // 既に処理済みのseedはスキップ
-				}
-
 				const { filePath, newFileName, image, tempFilePath, originalWidth, originalHeight } = await processSingleItem(item, i, watermark, outputFolder);
 
 				archive.file(filePath, { name: newFileName });
