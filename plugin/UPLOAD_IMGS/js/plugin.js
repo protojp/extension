@@ -10,6 +10,14 @@ eagle.onPluginCreate((plugin) => {
 		<li>path: ${plugin.path}</li>
 	</ul>
 	`;
+	// 実行
+	(async () => {
+		const tags = (await eagle.tag.get());
+
+		console.log("UPLOAD_IMGS 開始！");
+
+		console.log(tags);
+	})();
 });
 
 eagle.onPluginRun(() => {
