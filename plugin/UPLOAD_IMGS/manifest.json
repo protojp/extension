@@ -1,0 +1,15 @@
+{
+    "id": "d16676e3-b9c1-4815-be51-84fbc112440d",
+    "version": "1.0.0",
+    "platform": "all",
+    "arch": "all",
+    "name": "UPLOAD_IMGS",
+    "logo": "/logo.png",
+    "keywords": [],
+    "devTools": false,
+    "main": {
+        "url": "index.html",
+        "width": 640,
+        "height": 480
+    }
+}
