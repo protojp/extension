@@ -27,7 +27,7 @@ eagle.onPluginCreate(async(plugin) =>
 	const targetRatingsLv1 = [2,1];
 	const maxImagesLv1 = 4;
 	const targetRatingsLv2 = [3,2,1]; // 例: Lv2はより高い評価の画像も入れる
-	const maxImagesLv2 = 16; 
+	const maxImagesLv2 = 25;
 
 	const startDate = new Date('2024-02-01'); // 開始日
 	const endDate = new Date('2024-02-02'); // 終了日
@@ -138,34 +138,38 @@ eagle.onPluginCreate(async(plugin) =>
 
 	async function processDateItems(dateString, dateItems, level, maxImages, processedSeeds, jsonLevel) {
 		const selectedItems = selectItems(dateItems, maxImages, processedSeeds);
-		if (selectedItems.length < maxImages) {
-			console.error(`エラー: ${dateString}の${level}レベルで重複しない画像が${maxImages}枚見つかりませんでした。`);
-			return;
-		}
 
 		const { outputFolder, outputPath, tiledImagePath } = createOutputPaths(dateString, level);
-	
+
 		createOutputFolder(outputFolder);
-	
+
 		const { archive, output, closePromise } = setupArchive(outputPath);
 		const watermark = await setupWatermark();
-	
+
 		const { processedImages, metadata, tempFiles } = await processSelectedItems(selectedItems, watermark, outputFolder, archive, processedSeeds);
-	
+
 		await createTiledImage(processedImages, tiledImagePath, metadata);
-	
+
 		await finalizeArchive(archive, output, closePromise, tiledImagePath, metadata, outputFolder, dateString, tempFiles, jsonLevel);
-	
+
 		console.log(`${level}: 処理された画像の数: ${selectedItems.length}`);
 	}
 
 	function selectItems(dateItems, maxImages, processedSeeds) {
+		// 重複するseedを持つアイテムを除外
 		const uniqueItems = dateItems.filter(item => {
 			const seed = getSeedFromAnnotation(item.annotation);
 			return !(seed && processedSeeds.has(seed));
 		});
 
-		const selectedItems = uniqueItems.sort((a, b) => b.star - a.star).slice(0, maxImages);
+		// アイテムをランダムにシャッフル
+		for (let i = uniqueItems.length - 1; i > 0; i--) {
+			const j = Math.floor(Math.random() * (i + 1));
+			[uniqueItems[i], uniqueItems[j]] = [uniqueItems[j], uniqueItems[i]];
+		}
+
+		// 指定された最大数のアイテムを選択
+		const selectedItems = uniqueItems.slice(0, maxImages);
 
 		return selectedItems;
 	}
@@ -214,7 +218,7 @@ eagle.onPluginCreate(async(plugin) =>
 			try {
 				const item = selectedItems[i];
 				const seed = getSeedFromAnnotation(item.annotation);
-				
+	
 				const { filePath, newFileName, image, tempFilePath, originalWidth, originalHeight } = await processSingleItem(item, i, watermark, outputFolder);
 
 				archive.file(filePath, { name: newFileName });
@@ -427,15 +431,15 @@ eagle.onPluginCreate(async(plugin) =>
 
 	async function finalizeArchive(archive, output, closePromise, tiledImagePath, metadata, outputFolder, dateString, tempFiles, jsonLevel) {
 		archive.file(tiledImagePath, { name: path.basename(tiledImagePath) });
-	
+
 		await archive.finalize();
 		await closePromise;
-	
+
 		saveMetadata(metadata, outputFolder, dateString, jsonLevel);
-	
+
 		console.log(`ZIPファイルが正常に保存されました: ${output.path}`);
 		console.log(`タイル状の画像が保存されました: ${tiledImagePath}`);
-	
+
 		removeTempFiles(tempFiles);
 	}
 
