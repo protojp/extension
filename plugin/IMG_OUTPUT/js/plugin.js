@@ -29,8 +29,8 @@ eagle.onPluginCreate(async(plugin) =>
 	const targetRatingsLv2 = [3,2,1]; // 例: Lv2はより高い評価の画像も入れる
 	const maxImagesLv2 = 25;
 
-	const startDate = new Date('2024-02-01'); // 開始日
-	const endDate = new Date('2024-02-02'); // 終了日
+	const startDate = new Date('2024-04-17'); // 開始日
+	const endDate = new Date('2024-04-17'); // 終了日
 	const baseOutputFolder = 'E:\\SD_IMGS\\Discord'; // 基本出力フォルダ
 	const watermarkPath = 'E:\\Dropbox\\@Watermark\\@proto_jp.png';
 	const tileSize = 500; // 各タイルの辺の長さ（ピクセル）
@@ -94,11 +94,17 @@ eagle.onPluginCreate(async(plugin) =>
 		return items.filter(item => {
 			const itemDate = new Date(item.importedAt);
 			const seed = getSeedFromAnnotation(item.annotation);
-	
+
+			// 画像の幅と高さを取得
+			const imageWidth = item.width; 
+			const imageHeight = item.height;
+
 			if (
 				targetRatings.includes(item.star) &&
 				itemDate >= startDate &&
-				itemDate < new Date(endDate.getTime() + 86400000)
+				itemDate < new Date(endDate.getTime() + 86400000) &&
+				imageWidth <= 4800 && // 幅が4800px以下
+				imageHeight <= 4800 // 高さが4800px以下
 			) {
 				if (seed) {
 					if (processedSeeds.has(seed)) {
