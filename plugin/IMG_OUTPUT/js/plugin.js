@@ -29,8 +29,8 @@ eagle.onPluginCreate(async(plugin) =>
 	const targetRatingsLv2 = [3,2,1]; // 例: Lv2はより高い評価の画像も入れる
 	const maxImagesLv2 = 25;
 
-	const startDate = new Date('2024-04-17'); // 開始日
-	const endDate = new Date('2024-04-17'); // 終了日
+	const startDate = new Date('2024-10-13'); // 開始日
+	const endDate = new Date('2024-10-13'); // 終了日
 	const baseOutputFolder = 'E:\\SD_IMGS\\Discord'; // 基本出力フォルダ
 	const watermarkPath = 'E:\\Dropbox\\@Watermark\\@proto_jp.png';
 	const tileSize = 500; // 各タイルの辺の長さ（ピクセル）
