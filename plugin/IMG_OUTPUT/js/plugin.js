@@ -16,9 +16,9 @@ eagle.onPluginCreate(async(plugin) =>
 	const targetRatingsLv2 = [3,2,1]; // 例: Lv2はより高い評価の画像も入れる
 	const maxImagesLv2 = 25;
 
-	const targetTags = ["arima kana"]; // 必須タグの配列。空の場合はタグによるフィルタリングをスキップ
-	const startDate = new Date('2024-11-30'); // 開始日
-	const endDate = new Date('2024-11-30'); // 終了日
+	const targetTags = []; // 必須タグの配列。空の場合はタグによるフィルタリングをスキップ kurokawa akane
+	const startDate = new Date('2024-11-29'); // 開始日
+	const endDate = new Date('2024-11-29'); // 終了日
 	const baseOutputFolder = 'E:\\SD_IMGS\\Discord'; // 基本出力フォルダ
 	const watermarkPath = 'E:\\Dropbox\\@Watermark\\@proto_jp.png';
 	const tileSize = 500; // 各タイルの辺の長さ（ピクセル）
@@ -175,9 +175,17 @@ eagle.onPluginCreate(async(plugin) =>
 	function createOutputPaths(dateString, level) {
 		const [year, month, day] = dateString.split('-');
 		const outputFolder = path.join(baseOutputFolder, year, month);
-		const outputFileName = `${dateString}_${level}`;
+		
+		// Generate tag-based filename part
+		let tagFilePart = '';
+		if (targetTags && targetTags.length > 0) {
+			tagFilePart = '_' + targetTags.join('+');
+		}
+		
+		const outputFileName = `${dateString}${tagFilePart}_${level}`;
 		const outputPath = path.join(outputFolder, `${outputFileName}.zip`);
 		const tiledImagePath = path.join(outputFolder, `${outputFileName}_tiled.jpg`);
+		
 		return { outputFolder, outputPath, tiledImagePath };
 	}
 
@@ -442,8 +450,18 @@ eagle.onPluginCreate(async(plugin) =>
 	}
 
 	function saveMetadata(metadata, outputFolder, dateString, jsonLevel) {
-		const metadataPath = path.join(outputFolder, `${dateString}_${jsonLevel}.json`);
+		// タグベースのファイル名部分を生成
+		let tagFilePart = '';
+		if (targetTags && targetTags.length > 0) {
+			tagFilePart = '_' + targetTags.join('+');
+		}
+		
+		// メタデータJSONファイルのパスを生成
+		const metadataPath = path.join(outputFolder, `${dateString}${tagFilePart}_${jsonLevel}.json`);
+		
+		// メタデータをJSONファイルに書き出し
 		fs.writeFileSync(metadataPath, JSON.stringify(metadata, null, 2));
+		
 		console.log(`メタデータJSONファイルが保存されました: ${metadataPath}`);
 	}
 
