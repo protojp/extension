@@ -6,7 +6,21 @@
     <script type="text/javascript" src="js/plugin.js"></script>
 </head>
 
-<body>
+<body style="background: #ddf;">
 	<div>Background services can be without UI, but you can still display the status of background services here.</div>
 </body>
+<script>
+    // const sharp = require('sharp');
+    // const Jimp = require('jimp');
+    // const fs = require('fs');
+    
+    async function run(){
+        console.log('run start!!!!!!!!!!!!!!!');
+    
+        console.log(await eagle.library.info());
+    };
+    
+    setTimeout(run, 100);
+    
+</script>
 </html>

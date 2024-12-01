@@ -1,19 +1,6 @@
 
 eagle.onPluginCreate(async(plugin) => 
 {
-	// console.log('eagle.onPluginCreate');
-	// console.log(plugin);
-
-	// document.querySelector('#message').innerHTML = `
-	// テストテスト<br>
-	// <ul>
-	// 	<li>id: ${plugin.manifest.id}</li>
-	// 	<li>version: ${plugin.manifest.version}</li>
-	// 	<li>name: ${plugin.manifest.name}</li>
-	// 	<li>logo: ${plugin.manifest.logo}</li>
-	// 	<li>path: ${plugin.path}</li>
-	// </ul>
-	// `;
 
 	console.log("!!START!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
 	// console.log(eagle);
@@ -29,8 +16,9 @@ eagle.onPluginCreate(async(plugin) =>
 	const targetRatingsLv2 = [3,2,1]; // 例: Lv2はより高い評価の画像も入れる
 	const maxImagesLv2 = 25;
 
-	const startDate = new Date('2024-10-13'); // 開始日
-	const endDate = new Date('2024-10-13'); // 終了日
+	const targetTags = ["arima kana"]; // 必須タグの配列。空の場合はタグによるフィルタリングをスキップ
+	const startDate = new Date('2024-11-30'); // 開始日
+	const endDate = new Date('2024-11-30'); // 終了日
 	const baseOutputFolder = 'E:\\SD_IMGS\\Discord'; // 基本出力フォルダ
 	const watermarkPath = 'E:\\Dropbox\\@Watermark\\@proto_jp.png';
 	const tileSize = 500; // 各タイルの辺の長さ（ピクセル）
@@ -94,17 +82,21 @@ eagle.onPluginCreate(async(plugin) =>
 		return items.filter(item => {
 			const itemDate = new Date(item.importedAt);
 			const seed = getSeedFromAnnotation(item.annotation);
-
+	
 			// 画像の幅と高さを取得
-			const imageWidth = item.width; 
+			const imageWidth = item.width;
 			const imageHeight = item.height;
-
+	
+			// タグのチェック
+			const hasRequiredTags = targetTags.length === 0 || (item.tags && targetTags.every(tag => item.tags.includes(tag)));
+	
 			if (
 				targetRatings.includes(item.star) &&
 				itemDate >= startDate &&
 				itemDate < new Date(endDate.getTime() + 86400000) &&
 				imageWidth <= 4800 && // 幅が4800px以下
-				imageHeight <= 4800 // 高さが4800px以下
+				imageHeight <= 4800 && // 高さが4800px以下
+				hasRequiredTags // タグ条件を満たす
 			) {
 				if (seed) {
 					if (processedSeeds.has(seed)) {

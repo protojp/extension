@@ -6,7 +6,7 @@ eagle.onPluginCreate((plugin) => {
 });
 
 eagle.onPluginRun(() => {
-	console.log('eagle.onPluginRun');
+	console.log('eagle.onPluginRun#############################################');
 });
 
 eagle.onPluginShow(() => {
@@ -14,5 +14,5 @@ eagle.onPluginShow(() => {
 });
 
 eagle.onPluginHide(() => {
-	console.log('eagle.onPluginHide');
+	console.log('eagle.onPluginHide$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$');
 });
