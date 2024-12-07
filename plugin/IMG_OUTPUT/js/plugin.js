@@ -16,9 +16,9 @@ eagle.onPluginCreate(async(plugin) =>
 	const targetRatingsLv2 = [3,2,1]; // 例: Lv2はより高い評価の画像も入れる
 	const maxImagesLv2 = 25;
 
-	const targetTags = []; // 必須タグの配列。空の場合はタグによるフィルタリングをスキップ kurokawa akane
-	const startDate = new Date('2024-11-29'); // 開始日
-	const endDate = new Date('2024-11-29'); // 終了日
+	const targetTags = ["sexually suggestive"]; // 必須タグの配列。空の場合はタグによるフィルタリングをスキップ "kurokawa akane"
+	const startDate = new Date('2024-12-04'); // 開始日
+	const endDate = new Date('2024-12-04'); // 終了日
 	const baseOutputFolder = 'E:\\SD_IMGS\\Discord'; // 基本出力フォルダ
 	const watermarkPath = 'E:\\Dropbox\\@Watermark\\@proto_jp.png';
 	const tileSize = 500; // 各タイルの辺の長さ（ピクセル）
@@ -172,21 +172,43 @@ eagle.onPluginCreate(async(plugin) =>
 		return selectedItems;
 	}
 
+	function generateUniqueFilePath(baseFolder, dateString, level, extension, isTiled = false) {
+		// タイル画像の場合は名前に_tiledを追加
+		const tiledSuffix = isTiled ? '_tiled' : '';
+		const baseFileName = `${dateString}_${level}${tiledSuffix}`;
+	
+		// 最初のファイルが存在しない場合はそのまま使用
+		const basePath = path.join(baseFolder, `${baseFileName}.${extension}`);
+		if (!fs.existsSync(basePath)) {
+			return basePath;
+		}
+	
+		// 連番を付けて重複を避ける
+		let counter = 1;
+		let newPath;
+		
+		do {
+			// 連番を日付の後ろに追加
+			newPath = path.join(baseFolder, `${dateString}_${counter}_${level}${tiledSuffix}.${extension}`);
+			counter++;
+		} while (fs.existsSync(newPath));
+	
+		return newPath;
+	}
+
 	function createOutputPaths(dateString, level) {
 		const [year, month, day] = dateString.split('-');
 		const outputFolder = path.join(baseOutputFolder, year, month);
-		
-		// Generate tag-based filename part
-		let tagFilePart = '';
-		if (targetTags && targetTags.length > 0) {
-			tagFilePart = '_' + targetTags.join('+');
-		}
-		
-		const outputFileName = `${dateString}${tagFilePart}_${level}`;
-		const outputPath = path.join(outputFolder, `${outputFileName}.zip`);
-		const tiledImagePath = path.join(outputFolder, `${outputFileName}_tiled.jpg`);
-		
-		return { outputFolder, outputPath, tiledImagePath };
+	
+		const outputPath = generateUniqueFilePath(outputFolder, dateString, level, 'zip');
+		const tiledImagePath = generateUniqueFilePath(outputFolder, dateString, level, 'jpg', true);
+	
+		return { 
+			outputFolder, 
+			outputPath, 
+			tiledImagePath, 
+			fileNameSuffix: path.basename(outputPath, '.zip').split('_')[1] || '' 
+		};
 	}
 
 	function createOutputFolder(outputFolder) {
@@ -450,19 +472,11 @@ eagle.onPluginCreate(async(plugin) =>
 	}
 
 	function saveMetadata(metadata, outputFolder, dateString, jsonLevel) {
-		// タグベースのファイル名部分を生成
-		let tagFilePart = '';
-		if (targetTags && targetTags.length > 0) {
-			tagFilePart = '_' + targetTags.join('+');
-		}
-		
-		// メタデータJSONファイルのパスを生成
-		const metadataPath = path.join(outputFolder, `${dateString}${tagFilePart}_${jsonLevel}.json`);
-		
-		// メタデータをJSONファイルに書き出し
+		const metadataPath = generateUniqueFilePath(outputFolder, dateString, jsonLevel, 'json');
+	
 		fs.writeFileSync(metadataPath, JSON.stringify(metadata, null, 2));
-		
 		console.log(`メタデータJSONファイルが保存されました: ${metadataPath}`);
+		return metadataPath;
 	}
 
 	function removeTempFiles(tempFiles) {
