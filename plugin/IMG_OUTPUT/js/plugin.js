@@ -16,7 +16,7 @@ eagle.onPluginCreate(async(plugin) =>
 	const targetRatingsLv2 = [3,2,1]; // 例: Lv2はより高い評価の画像も入れる
 	const maxImagesLv2 = 25;
 
-	const targetTags = ["sexually suggestive"]; // 必須タグの配列。空の場合はタグによるフィルタリングをスキップ "kurokawa akane"
+	const targetTags = ["sexually suggestive"]; // タグフィルタリングの配列。空の場合はタグによるフィルタリングをスキップ "kurokawa akane"
 	const startDate = new Date('2024-12-04'); // 開始日
 	const endDate = new Date('2024-12-04'); // 終了日
 	const baseOutputFolder = 'E:\\SD_IMGS\\Discord'; // 基本出力フォルダ
