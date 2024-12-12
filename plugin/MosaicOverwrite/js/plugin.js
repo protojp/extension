@@ -4,7 +4,9 @@ eagle.onPluginCreate(async(plugin) => {
 
 	const { execFile } = require('child_process');
 	const path = require('path');
-
+	const fs = require('fs/promises');
+	const iconv = require('iconv-lite');
+	
 	async function processImage() {
 		try {
 			// rating: 0の画像を取得
@@ -13,7 +15,7 @@ eagle.onPluginCreate(async(plugin) => {
 				console.log('該当する画像がありません。');
 				return;
 			}
-			
+	
 			const item = items[0];
 			const filePath = item.filePath; // 画像ファイルのパスを取得
 	
@@ -26,18 +28,31 @@ eagle.onPluginCreate(async(plugin) => {
 			console.log(`モザイク処理を実行中: ${filePath}`);
 	
 			await new Promise((resolve, reject) => {
-				execFile(pythonPath, args, (error, stdout, stderr) => {
+				execFile(pythonPath, args, { encoding: 'buffer', cwd: path.dirname(scriptPath) }, (error, stdout, stderr) => {
 					if (error) {
-						reject(new Error(`モザイク処理中にエラーが発生しました: ${stderr}`));
+						const decodedError = iconv.decode(stderr, 'shift_jis');
+						reject(new Error(`モザイク処理中にエラーが発生しました: ${decodedError}`));
 					} else {
-						console.log('モザイク処理が成功しました:', stdout);
+						const decodedOutput = iconv.decode(stdout, 'shift_jis');
+						console.log('モザイク処理が成功しました:', decodedOutput);
 						resolve();
 					}
 				});
 			});
 	
+			// モザイク処理済みファイルのパスを推測
+			const mosaicFileName = path.basename(filePath, path.extname(filePath)) + '_mosaic.png';
+			const mosaicFilePath = path.join(path.dirname(filePath), mosaicFileName);
+	
+			console.log(mosaicFilePath);
+			try {
+				await fs.access(mosaicFilePath); // ファイルが存在するか確認
+			} catch {
+				throw new Error('モザイク処理されたファイルが見つかりません。');
+			}
+	
 			// モザイク処理が完了した画像を置き換え
-			const result = await item.replaceFile(filePath);
+			const result = await item.replaceFile(mosaicFilePath);
 			if (result) {
 				console.log('画像を正常に置き換えました。');
 	
