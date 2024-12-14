@@ -23,8 +23,14 @@ eagle.onPluginCreate(async(plugin) => {
 			const pythonPath = 'D:\\ai\\automosaic_2024-08-17\\venv\\Scripts\\python.exe';
 			const scriptPath = 'D:\\ai\\automosaic_2024-08-17\\automosaic.py';
 	
+			if (item.tags.length === 0) {
+				console.log('画像にタグがないため、処理を終了します。');
+				return;
+			}
 			// モザイク処理を実行
-			const args = [scriptPath, '-ssd', '-c', '0.25', filePath];
+			// '-sp',引数：プレビュー画像を保存
+			const args = [scriptPath, '-ssd','-n','-c','0.37', filePath];
+				
 			console.log(`モザイク処理を実行中: ${filePath}`);
 	
 			await new Promise((resolve, reject) => {
@@ -50,18 +56,22 @@ eagle.onPluginCreate(async(plugin) => {
 			} catch {
 				throw new Error('モザイク処理されたファイルが見つかりません。');
 			}
-	
+
 			// モザイク処理が完了した画像を置き換え
-			const result = await item.replaceFile(mosaicFilePath);
-			if (result) {
+			try {
+				await item.replaceFile(mosaicFilePath);
 				console.log('画像を正常に置き換えました。');
-	
+			
 				// タグを追加
 				item.tags.push('Mosaic_ow');
 				await item.save();
 				console.log('タグを追加しました: Mosaic_ow');
-			} else {
-				console.log('画像の置き換えに失敗しました。');
+
+				// _mosaic.png 画像を削除 
+				await fs.unlink(mosaicFilePath); 
+				console.log('一時的な _mosaic.png 画像を削除しました。'); 
+			} catch (error) {
+				console.error('画像の置き換え中にエラーが発生しました:', error);
 			}
 		} catch (error) {
 			console.error(error.message);
