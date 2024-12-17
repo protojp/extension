@@ -1,5 +1,5 @@
 eagle.onPluginCreate(async(plugin) => {
-	console.log("!!MosaicOverwrite START!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+	console.log("!!MosaicOverwrite START!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
 	console.log(plugin);
 
 	const { execFile } = require('child_process');
@@ -24,8 +24,10 @@ eagle.onPluginCreate(async(plugin) => {
 		// ターゲットフォルダ内の画像を取得（rating: 0のもの）
 		const items = await eagle.item.get({ 
 			folders: [targetFolder.id],
-			rating: 0 
+			rating: 1 
 		});
+
+		console.log(items);
 		
 		if (items.length === 0) {
 			console.log('該当する画像がありません。');
@@ -36,9 +38,6 @@ eagle.onPluginCreate(async(plugin) => {
 		const pythonPath = 'D:\\ai\\automosaic_2024-08-17\\venv\\Scripts\\python.exe';
 		const scriptPath = 'D:\\ai\\automosaic_2024-08-17\\automosaic.py';
 
-		// 処理対象の画像IDを保持する配列
-		const processedItemIds = [];
-
 		// 各画像に対してモザイク処理を実行
 		for (const item of items) {
 			if (item.tags.length === 0) {
@@ -47,6 +46,10 @@ eagle.onPluginCreate(async(plugin) => {
 			}
 
 			const filePath = item.filePath;
+
+			// ターゲットフォルダIDを配列から削除
+			item.folders = item.folders.filter(folderId => folderId !== targetFolder.id);
+			await item.save();
 
 			// モザイク処理を実行
 			const args = [scriptPath, '-ssd', '-c', '0.37', filePath];
@@ -66,11 +69,11 @@ eagle.onPluginCreate(async(plugin) => {
 
 				const decodedOutput = iconv.decode(stdout, 'shift_jis');
 				const decodedError = iconv.decode(stderr, 'shift_jis');
-				console.log('モザイク処理の出力:', decodedOutput);
-				console.log('モザイク処理のエラー出力:', decodedError);
+				// console.log('モザイク処理の出力:', decodedOutput);
+				// console.log('モザイク処理のエラー出力:', decodedError);
 
 				// モザイク対象がない場合はスキップ
-				if (decodedOutput.includes('(no detections)')) {
+				if (decodedOutput.includes('no detections')) {
 					console.log('モザイク対象がないため、画像を変更しません:', filePath);
 					continue;
 				}
@@ -91,24 +94,9 @@ eagle.onPluginCreate(async(plugin) => {
 				// 一時的な_mosaic.png画像を削除
 				await fs.unlink(mosaicFilePath);
 				console.log('一時的な _mosaic.png 画像を削除しました。');
-
-				// 処理が完了した画像のIDを追加
-				processedItemIds.push(item.id);
 			} catch (error) {
 				console.error('画像処理中にエラーが発生しました:', error);
 			}
-		}
-
-		// 処理済みの画像をターゲットフォルダから除外
-		if (items.length > 0) {
-			console.log(items);
-			// const processedItemIds = items.map(item => item.id);
-			// await Promise.all(processedItemIds.map(itemId => 
-			// 	eagle.item.update(itemId, { 
-			// 		folders: items.find(item => item.id === itemId).folders.filter(folderId => folderId !== targetFolder.id) 
-			// 	})
-			// ));
-			// console.log(`${processedItemIds.length}個の画像をフォルダから除外しました。`);
 		}
 	}
 
