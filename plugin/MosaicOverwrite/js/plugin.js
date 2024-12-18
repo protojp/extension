@@ -9,24 +9,30 @@ eagle.onPluginCreate(async(plugin) => {
 
 	const targetFolderName = "1stOutputWebUI";//'1stOutputWebUI';//生成時出力フォルダ。処理終了の判定に使う。
 	const targetTags = ["nsfw","nude"]; // タグフィルタリング配列
+	const tagFilterEnabled = false;//タグを考慮するかフラグ
 
 	async function processImage() {
-		// すべてのフォルダを取得
-		const folders = await eagle.folder.getAll();
 		
-		// ターゲットフォルダを検索
+		const folders = await eagle.folder.getAll();// すべてのフォルダを取得
 		const targetFolder = folders.find(folder => folder.name === targetFolderName);
-		
+
 		if (!targetFolder) {
 			console.log(`フォルダ "${targetFolderName}" が見つかりませんでした。`);
 			return;
 		}
 
+		var searchObj = {};
+		if(targetTags.length && tagFilterEnabled)
+		{
+			searchObj = { folders: [targetFolder.id],tags: targetTags};
+		}else{
+			searchObj = { folders: [targetFolder.id]};
+		}
+
+		console.log(searchObj);
+
 		// ターゲット画像を取得
-		const items = await eagle.item.get({ 
-			folders: [targetFolder.id],
-			tags: targetTags
-		});
+		const items = await eagle.item.get(searchObj);
 		
 		if (items.length === 0) {
 			console.log('該当する画像がありません。');
@@ -42,14 +48,14 @@ eagle.onPluginCreate(async(plugin) => {
 		// 各画像に対してモザイク処理を実行
 		for (const item of items) {
 
-			if (item.tags.length === 0) continue;
+			if (item.tags.length === 0 && tagFilterEnabled) continue;
 			
 			const filePath = item.filePath;
 
 			console.log("##loop#################################");
 			// ターゲットフォルダIDを配列から削除
-			item.folders = item.folders.filter(folderId => folderId !== targetFolder.id);
-			await item.save();
+			// item.folders = item.folders.filter(folderId => folderId !== targetFolder.id);
+			// await item.save();
 
 			// モザイク処理を実行
 			const args = [scriptPath,'-ssd','-sp','-c','0.35','-s','12','-m','AnimePussy_best-5.pt', filePath];
@@ -100,23 +106,25 @@ eagle.onPluginCreate(async(plugin) => {
 				console.error('画像処理中にエラーが発生しました:', error);
 			}
 		}
-		console.log('すべての画像処理が完了！！！');
+		console.log('全ターゲット画像処理が完了！');
 
-		// 処理後にフォルダに残っている画像をフォルダから除外
+		
 		items = await eagle.item.get({ 
 			folders: [targetFolder.id],
 		});
+		//フォルダ内画像をフォルダから除外処理
 		if (items.length > 0){
 			for (const item of items) {
 				item.folders = item.folders.filter(folderId => folderId !== targetFolder.id);
 				await item.save();
 			}
-			console.log('その他の画像をフォルダから除外完了');
+			console.log('画像をフォルダから除外完了');
 		}
 	}
 
 	processImage().catch(error => {
 		console.error('処理中にエラーが発生しました:', error.message);
+		console.log(error);
 	});
 });
 
