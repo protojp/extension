@@ -11,12 +11,13 @@ eagle.onPluginCreate(async(plugin) => {
 	const targetTags = ["nsfw","nude"]; // タグフィルタリング配列
 	const tagFilter = true;//処理対象に画像タグを考慮するかフラグ（SD作成以外の画像を処理対象にするか）
 
-	const replaceImage = false;//画像をモザイク画像で置き換えるかフラグ
+	const replaceImage = true;//画像をモザイク画像で置き換えるかフラグ
 
 	const baseMosaicModel = "AnimePussy_best-5.pt";
-	const mosaicModelsTargetTag = {
-		"1girl":"AnimePussy_best-5.pt",
+	const mosaicModelsTargetTag = 
+	{
 		"1boy":"penis.pt"
+		// ,"1girl":"AnimePussy_best-5.pt"
 	};
 
 	async function processImage() {
@@ -50,6 +51,7 @@ eagle.onPluginCreate(async(plugin) => {
 		const scriptPath = 'D:\\ai\\automosaic_2024-08-17\\automosaic.py';
 
 		// 各画像に対してモザイク処理を実行
+		// 各画像に対してモザイク処理を実行
 		for (const item of items) {
 
 			if (item.tags.length === 0 && tagFilter) continue;
@@ -58,12 +60,24 @@ eagle.onPluginCreate(async(plugin) => {
 
 			console.log("##loop#################################");
 
-			// モザイク処理を実行
-			const args = [scriptPath,'-ssd','-sp','-c','0.35','-s','12','-m',mosaicModel,filePath];
-			// console.log(`モザイク処理を実行中: ${filePath}`);
-			//-sp, プレビュー画像を保存する
+			// モザイクモデルを設定
+			let mosaicModel = baseMosaicModel;
 
-			console.log(mosaicModel);
+			// 画像のタグに基づいて追加のモザイクモデルを動的に構築
+			const additionalModels = new Set(); // 重複を防ぐためSetを使用
+			for (const tag of item.tags) {
+				if (mosaicModelsTargetTag[tag]) {
+					additionalModels.add(mosaicModelsTargetTag[tag]);
+				}
+			}
+
+			// モザイクモデルをカンマ区切りで作成
+			mosaicModel += ',' + Array.from(additionalModels).join(',');
+
+			console.log(`使用するモザイクモデル: ${mosaicModel}`);
+
+			const args = [scriptPath, '-ssd', '-c', '0.35', '-s', '12', '-m', mosaicModel, filePath];
+			//'-sp',プレビュー画像を保存する。ADetailerとかでよく見る、枠と点数がついてる画像を出力する
 
 			try {
 				// Pythonスクリプト実行
@@ -77,15 +91,10 @@ eagle.onPluginCreate(async(plugin) => {
 					});
 				});
 
-				// const decodedOutput = iconv.decode(stdout, 'shift_jis');
-				// const decodedError = iconv.decode(stderr, 'shift_jis');
-				// console.log('モザイク処理の出力:', decodedOutput);
-				// console.log('モザイク処理のエラー出力:', decodedError);
-
 				// モザイク処理済みファイルのパスを生成
 				const mosaicFileName = path.basename(filePath, path.extname(filePath)) + '_mosaic.png';
 				const mosaicFilePath = path.join(path.dirname(filePath), mosaicFileName);
-				
+
 				// モザイク画像が存在しない場合はスキップ
 				try {
 					await fs.access(mosaicFilePath);
@@ -97,24 +106,20 @@ eagle.onPluginCreate(async(plugin) => {
 				// 画像を置き換え
 				if(replaceImage)
 					await item.replaceFile(mosaicFilePath);
-				// console.log('画像を正常に置き換えました。');
 
 				// タグを追加
 				await item.tags.push('Mosaic_ow');
 				await item.save();
-				// console.log('タグを追加しました: Mosaic_ow');
 
 				// 一時的な_mosaic.png画像を削除
-				if(replaceImage)
+				if (replaceImage)
 					await fs.unlink(mosaicFilePath);
-				// console.log('一時的な _mosaic.png 画像を削除しました。');
 			} catch (error) {
 				console.error('画像処理中にエラーが発生しました:', error);
 			}
 		}
-		console.log('全ターゲット画像処理が完了！');
 
-		return;
+		console.log('全ターゲット画像処理が完了！');
 
 		const itemsAll = await eagle.item.get({ 
 			folders: [targetFolder.id],
