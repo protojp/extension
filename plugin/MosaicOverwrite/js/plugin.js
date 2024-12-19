@@ -9,12 +9,21 @@ eagle.onPluginCreate(async(plugin) => {
 
 	const targetFolderName = "1stOutputWebUI";//'1stOutputWebUI';//生成時出力フォルダ。処理終了の判定に使う。
 	const targetTags = ["nsfw","nude"]; // タグフィルタリング配列
-	const tagFilterEnabled = true;//タグを考慮するかフラグ
+	const tagFilter = true;//処理対象に画像タグを考慮するかフラグ（SD作成以外の画像を処理対象にするか）
+
+	const replaceImage = false;//画像をモザイク画像で置き換えるかフラグ
+
+	const baseMosaicModel = "AnimePussy_best-5.pt";
+	const mosaicModelsTargetTag = {
+		"1girl":"AnimePussy_best-5.pt",
+		"1boy":"penis.pt"
+	};
 
 	async function processImage() {
 		
 		const folders = await eagle.folder.getAll();// すべてのフォルダを取得
 		const targetFolder = folders.find(folder => folder.name === targetFolderName);
+		const mosaicModel = baseMosaicModel;
 
 		if (!targetFolder) {
 			console.log(`フォルダ "${targetFolderName}" が見つかりませんでした。`);
@@ -22,7 +31,7 @@ eagle.onPluginCreate(async(plugin) => {
 		}
 
 		var searchObj = {};
-		if(targetTags.length && tagFilterEnabled)
+		if(targetTags.length && tagFilter)
 		{
 			searchObj = { folders: [targetFolder.id],tags: targetTags};
 		}else{
@@ -43,18 +52,18 @@ eagle.onPluginCreate(async(plugin) => {
 		// 各画像に対してモザイク処理を実行
 		for (const item of items) {
 
-			if (item.tags.length === 0 && tagFilterEnabled) continue;
+			if (item.tags.length === 0 && tagFilter) continue;
 			
 			const filePath = item.filePath;
 
 			console.log("##loop#################################");
-			// ターゲットフォルダIDを配列から削除
-			// item.folders = item.folders.filter(folderId => folderId !== targetFolder.id);
-			// await item.save();
 
 			// モザイク処理を実行
-			const args = [scriptPath,'-ssd','-sp','-c','0.35','-s','12','-m','AnimePussy_best-5.pt', filePath];
+			const args = [scriptPath,'-ssd','-sp','-c','0.35','-s','12','-m',mosaicModel,filePath];
 			// console.log(`モザイク処理を実行中: ${filePath}`);
+			//-sp, プレビュー画像を保存する
+
+			console.log(mosaicModel);
 
 			try {
 				// Pythonスクリプト実行
@@ -86,7 +95,8 @@ eagle.onPluginCreate(async(plugin) => {
 				}
 
 				// 画像を置き換え
-				await item.replaceFile(mosaicFilePath);
+				if(replaceImage)
+					await item.replaceFile(mosaicFilePath);
 				// console.log('画像を正常に置き換えました。');
 
 				// タグを追加
@@ -95,13 +105,16 @@ eagle.onPluginCreate(async(plugin) => {
 				// console.log('タグを追加しました: Mosaic_ow');
 
 				// 一時的な_mosaic.png画像を削除
-				await fs.unlink(mosaicFilePath);
+				if(replaceImage)
+					await fs.unlink(mosaicFilePath);
 				// console.log('一時的な _mosaic.png 画像を削除しました。');
 			} catch (error) {
 				console.error('画像処理中にエラーが発生しました:', error);
 			}
 		}
 		console.log('全ターゲット画像処理が完了！');
+
+		return;
 
 		const itemsAll = await eagle.item.get({ 
 			folders: [targetFolder.id],
