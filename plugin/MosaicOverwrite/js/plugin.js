@@ -9,7 +9,7 @@ eagle.onPluginCreate(async(plugin) => {
 
 	const targetFolderName = "1stOutputWebUI";//'1stOutputWebUI';//生成時出力フォルダ。処理終了の判定に使う。
 	const targetTags = ["nsfw","nude"]; // タグフィルタリング配列
-	const tagFilterEnabled = false;//タグを考慮するかフラグ
+	const tagFilterEnabled = true;//タグを考慮するかフラグ
 
 	async function processImage() {
 		
@@ -29,15 +29,10 @@ eagle.onPluginCreate(async(plugin) => {
 			searchObj = { folders: [targetFolder.id]};
 		}
 
-		console.log(searchObj);
+		// console.log(searchObj);
 
 		// ターゲット画像を取得
 		const items = await eagle.item.get(searchObj);
-		
-		if (items.length === 0) {
-			console.log('該当する画像がありません。');
-			return;
-		}
 
 		console.log(`ターゲット画像 "${items.length}" 枚`);
 
@@ -108,13 +103,12 @@ eagle.onPluginCreate(async(plugin) => {
 		}
 		console.log('全ターゲット画像処理が完了！');
 
-		
-		items = await eagle.item.get({ 
+		const itemsAll = await eagle.item.get({ 
 			folders: [targetFolder.id],
 		});
 		//フォルダ内画像をフォルダから除外処理
-		if (items.length > 0){
-			for (const item of items) {
+		if (itemsAll.length > 0){
+			for (const item of itemsAll) {
 				item.folders = item.folders.filter(folderId => folderId !== targetFolder.id);
 				await item.save();
 			}
