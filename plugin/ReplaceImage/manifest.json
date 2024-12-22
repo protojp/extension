@@ -1,0 +1,15 @@
+{
+    "id": "172cf959-570b-46fa-a8a6-717058268469",
+    "version": "1.0.0",
+    "platform": "all",
+    "arch": "all",
+    "name": "ReplaceImage",
+    "logo": "/logo.png",
+    "keywords": [],
+    "devTools": true,
+    "main": {
+        "url": "index.html",
+        "width": 800,
+        "height": 800
+    }
+}
