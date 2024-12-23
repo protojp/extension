@@ -1,164 +1,198 @@
 eagle.onPluginCreate(async(plugin) => 
 {
+    console.log("!!START!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
 
-	console.log("!!START!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
-	// console.log(eagle);
+    const fs = require('fs');
+    const path = require('path');
+    const archiver = require('archiver');
+    const Jimp = require('jimp');
 
-	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	const fs = require('fs');
-	const path = require('path');
-	const archiver = require('archiver');
-	const Jimp = require('jimp');
+    // 出力条件配列
+    const outputImageTerms = [
+		// {
+        //     suffix: "Lv3",
+        //     ratings: [3, 2, 1],
+        //     maxImages: 25,
+        //     requiredTags: ["kurokawa akane"],
+        //     notTags: []
+        // },
+		// {
+		// 	suffix: "Lv2",
+		// 	ratings: [3, 2, 1],
+		// 	maxImages: 25,
+		// 	requiredTags: [],
+		// 	notTags: ["nsfw"]
+		// }
+		{
+            suffix: "Lv4",
+            ratings: [3, 2, 1],
+            maxImages: 25,
+            requiredTags: ["nsfw","nude","1boy"],
+            notTags: []
+        },
+		{
+            suffix: "Lv3",
+            ratings: [3, 2, 1],
+            maxImages: 25,
+            requiredTags: ["nsfw","nude"],
+            notTags: ["1boy"]
+        },
+		{
+            suffix: "Lv2-sex",
+            ratings: [3, 2, 1],
+            maxImages: 4,
+            requiredTags: ["nsfw","nude","1boy"],
+            notTags: []
+        },
+		{
+            suffix: "Lv2-nude",
+            ratings: [3, 2, 1],
+            maxImages: 4,
+            requiredTags: ["nsfw","nude"],
+            notTags: ["1boy"]
+        },
+        {
+            suffix: "Lv2",
+            ratings: [3, 2, 1],
+            maxImages: 25,
+            requiredTags: [],
+            notTags: ["nsfw"]
+        },
+        {
+            suffix: "Lv1",
+            ratings: [2, 1],
+            maxImages: 4,
+            requiredTags: [],
+            notTags: ["nsfw"]
+        }
+    ];
 
-	const targetRatingsLv1 = [2,1];
-	const maxImagesLv1 = 4;
-	const targetRatingsLv2 = [3,2,1]; // 例: Lv2はより高い評価の画像も入れる
-	const maxImagesLv2 = 25;
+    const startDate = new Date('2024-12-23');
+    const endDate = new Date('2024-12-23');
+    const baseOutputFolder = 'E:\\SD_IMGS\\Discord';
+    const watermarkPath = 'E:\\Dropbox\\@Watermark\\@proto_jp.png';
+    const tileSize = 500;
 
-	const requiredTags = ["sexually suggestive"]; // タグフィルタリングの配列。空の場合はタグによるフィルタリングをスキップ "kurokawa akane"
-	const notTags = ["nsfw","nude"]; // 除外タグフィルタリングの配列。空の場合はスキップ
+    const watermarkConfig = {
+        width: 300,
+        height: 100,
+        x: 'right',
+        y: 'bottom',
+        opacity: 0.8,
+        marginX: 30,
+        marginY: 20
+    };
 
-	const startDate = new Date('2024-12-01'); // 開始日
-	const endDate = new Date('2024-12-01'); // 終了日
-	const baseOutputFolder = 'E:\\SD_IMGS\\Discord'; // 基本出力フォルダ
-	const watermarkPath = 'E:\\Dropbox\\@Watermark\\@proto_jp.png';
-	const tileSize = 500; // 各タイルの辺の長さ（ピクセル）
+    async function processImages() {
+        try {
+            console.log("画像の取得を開始します...");
+            const items = await eagle.item.get();
+            console.log(`${items.length}個のアイテムを取得しました。`);
 
-	// ウォーターマークの設定（デフォルト値）
-	const watermarkConfig = {
-		width: 300,
-		height: 100,
-		x: 'right',
-		y: 'bottom',
-		opacity: 0.8,
-		marginX: 30,
-		marginY: 20
-	};
+            const processedSeeds = new Set();
 
-	async function processImages() {
-		try {
-			console.log("画像の取得を開始します...");
-			const items = await eagle.item.get();
-			console.log(`${items.length}個のアイテムを取得しました。`);
-	
-			const processedSeeds = new Set();
-	
-			// Lv2の処理
-			const filteredItemsLv2 = filterItems(items, targetRatingsLv2, processedSeeds);
-			console.log(`Lv2フィルタリング後のアイテム数: ${filteredItemsLv2.length}`);
-	
-			if (filteredItemsLv2.length > 0) {
-				const groupedItemsLv2 = groupItemsByDate(filteredItemsLv2);
-				for (const [dateString, dateItems] of Object.entries(groupedItemsLv2)) {
-					console.log(`Lv2: ${dateString}の処理を開始します... (${dateItems.length}個のアイテム)`);
-					await processDateItems(dateString, dateItems, 'Lv2', maxImagesLv2, processedSeeds, 'Lv2');
-				}
-			}
-	
-			// Lv1の処理
-			const filteredItemsLv1 = filterItems(items, targetRatingsLv1, processedSeeds);
-			console.log(`Lv1フィルタリング後のアイテム数: ${filteredItemsLv1.length}`);
-	
-			if (filteredItemsLv1.length > 0) {
-				const groupedItemsLv1 = groupItemsByDate(filterItems(items, targetRatingsLv1, processedSeeds));
-				for (const [dateString, dateItems] of Object.entries(groupedItemsLv1)) {
-					console.log(`Lv1: ${dateString}の処理を開始します... (${dateItems.length}個のアイテム)`);
-					await processDateItems(dateString, dateItems, 'Lv1', maxImagesLv1, processedSeeds, 'Lv1');
-				}
-			}
-	
-			if (filteredItemsLv1.length === 0 && filteredItemsLv2.length === 0) {
-				console.log('条件に合う画像が見つかりませんでした。');
-				return;
-			}
-	
-			console.log("すべての処理が完了しました。");
-		} catch (error) {
-			console.error('エラーが発生しました:', error);
-			console.error('エラーのスタックトレース:', error.stack);
-		}
-	}
+            for (const term of outputImageTerms) {
+                const filteredItems = filterItems(items, term.ratings, term.requiredTags, term.notTags, processedSeeds);
+                console.log(`${term.suffix}フィルタリング後のアイテム数: ${filteredItems.length}`);
 
-	function filterItems(items, targetRatings, processedSeeds) {
-		return items.filter(item => {
-			const itemDate = new Date(item.importedAt);
-			const seed = getSeedFromAnnotation(item.annotation);
-	
-			// 画像の幅と高さを取得
-			const imageWidth = item.width;
-			const imageHeight = item.height;
-	
-			// 必須タグのチェック
-			const hasRequiredTags = requiredTags.length === 0 || 
-				(item.tags && requiredTags.every(tag => item.tags.includes(tag)));
-	
-			// 除外タグのチェック
-			const hasNotTags = notTags.length > 0 && 
-				(item.tags && notTags.some(tag => item.tags.includes(tag)));
-	
-			if (
-				targetRatings.includes(item.star) &&
-				itemDate >= startDate &&
-				itemDate < new Date(endDate.getTime() + 86400000) &&
-				imageWidth <= 4800 && // 幅が4800px以下
-				imageHeight <= 4800 && // 高さが4800px以下
-				hasRequiredTags && // 必須タグ条件を満たす
-				!hasNotTags // 除外タグがない
-			) {
-				if (seed) {
-					if (processedSeeds.has(seed)) {
-						return false;
-					} else {
-						return true;
-					}
-				}
-				return true;
-			}
-			return false;
-		});
-	}
+                if (filteredItems.length > 0) {
+                    const groupedItems = groupItemsByDate(filteredItems);
+                    for (const [dateString, dateItems] of Object.entries(groupedItems)) {
+                        console.log(`${term.suffix}: ${dateString}の処理を開始します... (${dateItems.length}個のアイテム)`);
+                        await processDateItems(dateString, dateItems, term.suffix, term.maxImages, processedSeeds);
+                    }
+                }
+            }
 
-	function getSeedFromAnnotation(annotation) {
-		if (!annotation) return null;
-		const seedMatch = annotation.match(/Seed: (\d+)/);
-		return seedMatch ? seedMatch[1] : null;
-	}
+            console.log("すべての処理が完了しました。");
+        } catch (error) {
+            console.error('エラーが発生しました:', error);
+            console.error('エラーのスタックトレース:', error.stack);
+        }
+    }
 
-	function confirmProcessing(itemCount) {
-		const confirmMessage = `${itemCount}枚の画像を処理します。続行しますか？`;
-		return confirm(confirmMessage);
-	}
+    function filterItems(items, targetRatings, requiredTags, notTags, processedSeeds) {
+        return items.filter(item => {
+            const itemDate = new Date(item.importedAt);
+            const seed = getSeedFromAnnotation(item.annotation);
 
-	function groupItemsByDate(items) {
-		return items.reduce((acc, item) => {
-			const date = new Date(item.importedAt);
-			const dateString = date.toISOString().split('T')[0];
-			if (!acc[dateString]) {
-				acc[dateString] = [];
-			}
-			acc[dateString].push(item);
-			return acc;
-		}, {});
-	}
+            const imageWidth = item.width;
+            const imageHeight = item.height;
 
-	async function processDateItems(dateString, dateItems, level, maxImages, processedSeeds, jsonLevel) {
-		const selectedItems = selectItems(dateItems, maxImages, processedSeeds);
+            const hasRequiredTags = requiredTags.length === 0 || 
+                (item.tags && requiredTags.every(tag => item.tags.includes(tag)));
 
-		const { outputFolder, outputPath, tiledImagePath } = createOutputPaths(dateString, level);
+            const hasNotTags = notTags.length > 0 && 
+                (item.tags && notTags.some(tag => item.tags.includes(tag)));
 
-		createOutputFolder(outputFolder);
+            if (
+                targetRatings.includes(item.star) &&
+                itemDate >= startDate &&
+                itemDate < new Date(endDate.getTime() + 86400000) &&
+                imageWidth <= 4800 &&
+                imageHeight <= 4800 &&
+                hasRequiredTags &&
+                !hasNotTags
+            ) {
+                if (seed) {
+                    if (processedSeeds.has(seed)) {
+                        return false;
+                    } else {
+                        return true;
+                    }
+                }
+                return true;
+            }
+            return false;
+        });
+    }
 
-		const { archive, output, closePromise } = setupArchive(outputPath);
-		const watermark = await setupWatermark();
+    function getSeedFromAnnotation(annotation) {
+        if (!annotation) return null;
+        const seedMatch = annotation.match(/Seed: (\d+)/);
+        return seedMatch ? seedMatch[1] : null;
+    }
 
-		const { processedImages, metadata, tempFiles } = await processSelectedItems(selectedItems, watermark, outputFolder, archive, processedSeeds);
+    function groupItemsByDate(items) {
+        return items.reduce((acc, item) => {
+            const date = new Date(item.importedAt);
+            const dateString = date.toISOString().split('T')[0];
+            if (!acc[dateString]) {
+                acc[dateString] = [];
+            }
+            acc[dateString].push(item);
+            return acc;
+        }, {});
+    }
 
-		await createTiledImage(processedImages, tiledImagePath, metadata);
+    async function processDateItems(dateString, dateItems, suffix, maxImages, processedSeeds) {
+        const selectedItems = selectItems(dateItems, maxImages, processedSeeds);
 
-		await finalizeArchive(archive, output, closePromise, tiledImagePath, metadata, outputFolder, dateString, tempFiles, jsonLevel);
+        const { outputFolder, outputPath, tiledImagePath } = createOutputPaths(dateString, suffix);
 
-		console.log(`${level}: 処理された画像の数: ${selectedItems.length}`);
-	}
+        createOutputFolder(outputFolder);
+
+        const { archive, output, closePromise } = setupArchive(outputPath);
+        const watermark = await setupWatermark();
+
+        const { processedImages, metadata, tempFiles } = await processSelectedItems(selectedItems, watermark, outputFolder, archive, processedSeeds);
+
+        await createTiledImage(processedImages, tiledImagePath, metadata);
+
+        await finalizeArchive(archive, output, closePromise, tiledImagePath, metadata, outputFolder, dateString, tempFiles, suffix);
+
+        console.log(`${suffix}: 処理された画像の数: ${selectedItems.length}`);
+    }
+
+    function finalizeArchive(archive, output, closePromise, tiledImagePath, metadata, outputFolder, dateString, tempFiles, suffix) {
+        archive.file(tiledImagePath, { name: path.basename(tiledImagePath) });
+
+        const metadataPath = generateUniqueFilePath(outputFolder, dateString, suffix, 'json');
+        fs.writeFileSync(metadataPath, JSON.stringify(metadata, null, 2));
+        console.log(`メタデータJSONファイルが保存されました: ${metadataPath}`);
+
+        removeTempFiles(tempFiles);
+    }
 
 	function selectItems(dateItems, maxImages, processedSeeds) {
 		// 重複するseedを持つアイテムを除外
@@ -179,29 +213,22 @@ eagle.onPluginCreate(async(plugin) =>
 		return selectedItems;
 	}
 
-	function generateUniqueFilePath(baseFolder, dateString, level, extension, isTiled = false) {
-		// タイル画像の場合は名前に_tiledを追加
-		const tiledSuffix = isTiled ? '_tiled' : '';
-		const baseFileName = `${dateString}_${level}${tiledSuffix}`;
-	
-		// 最初のファイルが存在しない場合はそのまま使用
-		const basePath = path.join(baseFolder, `${baseFileName}.${extension}`);
-		if (!fs.existsSync(basePath)) {
-			return basePath;
-		}
-	
-		// 連番を付けて重複を避ける
-		let counter = 1;
-		let newPath;
-		
-		do {
-			// 連番を日付の後ろに追加
-			newPath = path.join(baseFolder, `${dateString}_${counter}_${level}${tiledSuffix}.${extension}`);
-			counter++;
-		} while (fs.existsSync(newPath));
-	
-		return newPath;
-	}
+    function generateUniqueFilePath(baseFolder, dateString, suffix, extension) {
+        const baseFileName = `${dateString}_${suffix}`;
+        const basePath = path.join(baseFolder, `${baseFileName}.${extension}`);
+        if (!fs.existsSync(basePath)) {
+            return basePath;
+        }
+
+        let counter = 1;
+        let newPath;
+        do {
+            newPath = path.join(baseFolder, `${baseFileName}_${counter}.${extension}`);
+            counter++;
+        } while (fs.existsSync(newPath));
+
+        return newPath;
+    }
 
 	function createOutputPaths(dateString, level) {
 		const [year, month, day] = dateString.split('-');
