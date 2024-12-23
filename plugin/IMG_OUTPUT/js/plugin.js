@@ -1,4 +1,3 @@
-
 eagle.onPluginCreate(async(plugin) => 
 {
 
@@ -16,9 +15,11 @@ eagle.onPluginCreate(async(plugin) =>
 	const targetRatingsLv2 = [3,2,1]; // 例: Lv2はより高い評価の画像も入れる
 	const maxImagesLv2 = 25;
 
-	const targetTags = ["sexually suggestive"]; // タグフィルタリングの配列。空の場合はタグによるフィルタリングをスキップ "kurokawa akane"
-	const startDate = new Date('2024-12-04'); // 開始日
-	const endDate = new Date('2024-12-04'); // 終了日
+	const requiredTags = ["sexually suggestive"]; // タグフィルタリングの配列。空の場合はタグによるフィルタリングをスキップ "kurokawa akane"
+	const notTags = ["nsfw","nude"]; // 除外タグフィルタリングの配列。空の場合はスキップ
+
+	const startDate = new Date('2024-12-01'); // 開始日
+	const endDate = new Date('2024-12-01'); // 終了日
 	const baseOutputFolder = 'E:\\SD_IMGS\\Discord'; // 基本出力フォルダ
 	const watermarkPath = 'E:\\Dropbox\\@Watermark\\@proto_jp.png';
 	const tileSize = 500; // 各タイルの辺の長さ（ピクセル）
@@ -87,8 +88,13 @@ eagle.onPluginCreate(async(plugin) =>
 			const imageWidth = item.width;
 			const imageHeight = item.height;
 	
-			// タグのチェック
-			const hasRequiredTags = targetTags.length === 0 || (item.tags && targetTags.every(tag => item.tags.includes(tag)));
+			// 必須タグのチェック
+			const hasRequiredTags = requiredTags.length === 0 || 
+				(item.tags && requiredTags.every(tag => item.tags.includes(tag)));
+	
+			// 除外タグのチェック
+			const hasNotTags = notTags.length > 0 && 
+				(item.tags && notTags.some(tag => item.tags.includes(tag)));
 	
 			if (
 				targetRatings.includes(item.star) &&
@@ -96,7 +102,8 @@ eagle.onPluginCreate(async(plugin) =>
 				itemDate < new Date(endDate.getTime() + 86400000) &&
 				imageWidth <= 4800 && // 幅が4800px以下
 				imageHeight <= 4800 && // 高さが4800px以下
-				hasRequiredTags // タグ条件を満たす
+				hasRequiredTags && // 必須タグ条件を満たす
+				!hasNotTags // 除外タグがない
 			) {
 				if (seed) {
 					if (processedSeeds.has(seed)) {
