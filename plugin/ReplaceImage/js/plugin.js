@@ -4,11 +4,13 @@ eagle.onPluginCreate((plugin) => {
     // Add HTML elements dynamically to the page
     const main = document.querySelector('main');
     const container = document.createElement('div');
-    container.style.margin = '20px';
+    container.style.margin = '5px';
 
     const clipboardContent = document.createElement('div');
     clipboardContent.id = 'clipboardContent';
-    clipboardContent.style.width = '100%';
+    clipboardContent.style.display = 'block';
+    clipboardContent.style.margin = '0 auto';
+    clipboardContent.style.width = '90%';
     clipboardContent.style.height = '50px';
     clipboardContent.style.overflowY = 'scroll';
     clipboardContent.style.border = '1px solid #ccc';
@@ -20,7 +22,10 @@ eagle.onPluginCreate((plugin) => {
 
     const button = document.createElement('button');
     button.textContent = 'Replace';
-    button.style.marginTop = '10px';
+    button.style.width = '50%';
+    button.style.height = '50px';
+    button.style.display = 'block';
+    button.style.margin = '0 auto';
     button.id = 'replaceButton';
 
     const status = document.createElement('div');
