@@ -7,6 +7,12 @@ eagle.onPluginCreate(async(plugin) =>
     const archiver = require('archiver');
     const Jimp = require('jimp');
 
+    const startDate = new Date('2024-12-01');
+    const endDate = new Date('2024-12-01');
+    const baseOutputFolder = 'E:\\SD_IMGS\\Discord';
+    const watermarkPath = 'E:\\Dropbox\\@Watermark\\@proto_jp.png';
+    const tileSize = 500;
+
     // 出力条件配列
     const outputImageTerms = [
 		// {
@@ -24,7 +30,7 @@ eagle.onPluginCreate(async(plugin) =>
 		// 	notTags: ["nsfw"]
 		// }
 		{
-            suffix: "Lv4",
+            suffix: "Lv3-sex",
             ratings: [3, 2, 1],
             maxImages: 25,
             requiredTags: ["nsfw","nude","1boy"],
@@ -66,12 +72,6 @@ eagle.onPluginCreate(async(plugin) =>
             notTags: ["nsfw"]
         }
     ];
-
-    const startDate = new Date('2024-12-23');
-    const endDate = new Date('2024-12-23');
-    const baseOutputFolder = 'E:\\SD_IMGS\\Discord';
-    const watermarkPath = 'E:\\Dropbox\\@Watermark\\@proto_jp.png';
-    const tileSize = 500;
 
     const watermarkConfig = {
         width: 300,
@@ -213,8 +213,11 @@ eagle.onPluginCreate(async(plugin) =>
 		return selectedItems;
 	}
 
-    function generateUniqueFilePath(baseFolder, dateString, suffix, extension) {
-        const baseFileName = `${dateString}_${suffix}`;
+    function generateUniqueFilePath(baseFolder, dateString, suffix, extension, isTiled = false) {
+		// タイル画像の場合は名前に_tiledを追加
+		const tiledSuffix = isTiled ? '_tiled' : '';
+        const baseFileName = `${dateString}_${suffix}${tiledSuffix}`;
+
         const basePath = path.join(baseFolder, `${baseFileName}.${extension}`);
         if (!fs.existsSync(basePath)) {
             return basePath;
