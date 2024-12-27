@@ -25,7 +25,7 @@ eagle.onPluginCreate(async(plugin) => {
 		
 		const folders = await eagle.folder.getAll();// すべてのフォルダを取得
 		const targetFolder = folders.find(folder => folder.name === targetFolderName);
-		const mosaicModel = baseMosaicModel;
+		// const mosaicModel = baseMosaicModel;
 
 		if (!targetFolder) {
 			console.log(`フォルダ "${targetFolderName}" が見つかりませんでした。`);

@@ -7,53 +7,41 @@ eagle.onPluginCreate(async(plugin) =>
     const archiver = require('archiver');
     const Jimp = require('jimp');
 
-    const startDate = new Date('2024-12-01');
-    const endDate = new Date('2024-12-01');
+    const startDate = new Date('2024-12-26');
+    const endDate = new Date('2024-12-26');
+	const addRequiredTags = ["ubel"];//必須タグに追加するタグ
+
     const baseOutputFolder = 'E:\\SD_IMGS\\Discord';
     const watermarkPath = 'E:\\Dropbox\\@Watermark\\@proto_jp.png';
     const tileSize = 500;
 
     // 出力条件配列
     const outputImageTerms = [
-		// {
-        //     suffix: "Lv3",
-        //     ratings: [3, 2, 1],
-        //     maxImages: 25,
-        //     requiredTags: ["kurokawa akane"],
-        //     notTags: []
-        // },
-		// {
-		// 	suffix: "Lv2",
-		// 	ratings: [3, 2, 1],
-		// 	maxImages: 25,
-		// 	requiredTags: [],
-		// 	notTags: ["nsfw"]
-		// }
 		{
             suffix: "Lv3-sex",
             ratings: [3, 2, 1],
-            maxImages: 25,
+            maxImages: 36,
             requiredTags: ["nsfw","nude","1boy"],
             notTags: []
         },
 		{
             suffix: "Lv3",
             ratings: [3, 2, 1],
-            maxImages: 25,
+            maxImages: 36,
             requiredTags: ["nsfw","nude"],
             notTags: ["1boy"]
         },
 		{
             suffix: "Lv2-sex",
             ratings: [3, 2, 1],
-            maxImages: 4,
+            maxImages: 6,
             requiredTags: ["nsfw","nude","1boy"],
             notTags: []
         },
 		{
             suffix: "Lv2-nude",
             ratings: [3, 2, 1],
-            maxImages: 4,
+            maxImages: 6,
             requiredTags: ["nsfw","nude"],
             notTags: ["1boy"]
         },
@@ -71,6 +59,20 @@ eagle.onPluginCreate(async(plugin) =>
             requiredTags: [],
             notTags: ["nsfw"]
         }
+		// {
+        //     suffix: "Lv3",
+        //     ratings: [3, 2, 1],
+        //     maxImages: 25,
+        //     requiredTags: ["kurokawa akane"],
+        //     notTags: []
+        // },
+		// {
+		// 	suffix: "Lv2",
+		// 	ratings: [3, 2, 1],
+		// 	maxImages: 25,
+		// 	requiredTags: [],
+		// 	notTags: ["nsfw"]
+		// }
     ];
 
     const watermarkConfig = {
@@ -82,6 +84,19 @@ eagle.onPluginCreate(async(plugin) =>
         marginX: 30,
         marginY: 20
     };
+
+	function addRequiredTagsToTerms(outputTerms, tagsToAdd) {
+		// tagsToAddが空配列または未定義の場合は何もしない
+		if (!tagsToAdd || tagsToAdd.length === 0) {
+			return;
+		}
+	
+		// 各要素のrequiredTagsに新しいタグを追加
+		outputTerms.forEach(term => {
+			term.requiredTags.push(...tagsToAdd);
+		});
+	}
+	addRequiredTagsToTerms(outputImageTerms, addRequiredTags);
 
     async function processImages() {
         try {
