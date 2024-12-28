@@ -59,76 +59,51 @@ eagle.onPluginCreate((plugin) => {
 
     window.addEventListener('focus', monitorClipboard);
 
-    // Add event listener for the replace button
-    button.addEventListener('click', async () => {
-        const filePath = clipboardContent.textContent;
-        const status = document.getElementById('status');
-
-        if (!filePath || filePath === 'Clipboard is empty' || filePath === 'Failed to read clipboard') {
-            status.textContent = 'Error: Clipboard content is invalid';
+    // Common function to handle file replacement
+    async function replaceFile(selected, suffix, statusElement) {
+        if (!selected || selected.length === 0) {
+            statusElement.textContent = 'Error: No file selected';
             return;
         }
 
-        try {
-            // Get selected file(s)
-            const selected = await eagle.item.getSelected();
-            if (!selected || selected.length === 0) {
-                status.textContent = 'Error: No file selected';
-                return;
-            }
+        const item = selected[0];
+        if (!item.filePath) {
+            statusElement.textContent = 'Error: Selected item has no path';
+            return;
+        }
 
-            // Replace the first selected file with the specified path
-            const item = selected[0];
-            const result = await item.replaceFile(filePath);
+        const newFilePath = suffix
+            ? item.filePath.replace(/(\.[^.]+)$/, `${suffix}$1`)
+            : clipboardContent.textContent;
+
+        console.log('File path to replace:', newFilePath);
+
+        try {
+            const result = await item.replaceFile(newFilePath);
 
             if (result) {
-                status.textContent = 'Success: File replaced successfully';
+                statusElement.textContent = `Success: File replaced${suffix ? ` with ${suffix}` : ''} successfully`;
             } else {
-                status.textContent = 'Error: Failed to replace file';
+                statusElement.textContent = `Error: Failed to replace file${suffix ? ` with ${suffix}` : ''}`;
             }
         } catch (error) {
             console.error('Error:', error);
-            status.textContent = `Error: ${error.message}`;
+            statusElement.textContent = `Error: ${error.message}`;
         }
+    }
+
+    // Add event listener for the replace button
+    button.addEventListener('click', async () => {
+        const status = document.getElementById('status');
+        const selected = await eagle.item.getSelected();
+        await replaceFile(selected, '', status);
     });
 
     // Add event listener for the replace_original button
     button2.addEventListener('click', async () => {
         const status = document.getElementById('status');
-
-        console.log("button2!!!!")
-
-        try {
-            // Get selected file(s)
-            const selected = await eagle.item.getSelected();
-            if (!selected || selected.length === 0) {
-                status.textContent = 'Error: No file selected';
-                return;
-            }
-
-            console.log(selected);
-
-            // Replace with the _original file
-            const item = selected[0];
-            if (!item.filePath) {
-                status.textContent = 'Error: Selected item has no path';
-                return;
-            }
-
-            const originalFilePath = item.filePath.replace(/(\.[^.]+)$/, '_original$1');
-            console.log('Original file path:', originalFilePath);
-
-            const result = await item.replaceFile(originalFilePath);
-
-            if (result) {
-                status.textContent = 'Success: File replaced with original successfully';
-            } else {
-                status.textContent = 'Error: Failed to replace file with original';
-            }
-        } catch (error) {
-            console.error('Error:', error);
-            status.textContent = `Error: ${error.message}`;
-        }
+        const selected = await eagle.item.getSelected();
+        await replaceFile(selected, '_original', status);
     });
 });
 
