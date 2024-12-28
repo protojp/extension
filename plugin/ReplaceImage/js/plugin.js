@@ -10,7 +10,6 @@ eagle.onPluginCreate((plugin) => {
     clipboardContent.id = 'clipboardContent';
     clipboardContent.style.display = 'block';
     clipboardContent.style.margin = '0 auto';
-    clipboardContent.style.width = '90%';
     clipboardContent.style.height = '50px';
     clipboardContent.style.overflowY = 'scroll';
     clipboardContent.style.border = '1px solid #ccc';
@@ -21,12 +20,16 @@ eagle.onPluginCreate((plugin) => {
     clipboardContent.textContent = 'Clipboard content will appear here';
 
     const button = document.createElement('button');
-    button.textContent = 'Replace';
-    button.style.width = '50%';
+    button.textContent = '📋Replace';
+    button.style.width = '75%';
     button.style.height = '50px';
-    button.style.display = 'block';
-    button.style.margin = '0 auto';
     button.id = 'replaceButton';
+
+    const button2 = document.createElement('button');
+    button2.textContent = '🔄Original';
+    button2.style.width = '25%';
+    button2.style.height = '50px';
+    button2.id = 'replace_original';
 
     const status = document.createElement('div');
     status.id = 'status';
@@ -34,6 +37,7 @@ eagle.onPluginCreate((plugin) => {
     status.style.color = 'yellow';
 
     container.appendChild(clipboardContent);
+    container.appendChild(button2);
     container.appendChild(button);
     container.appendChild(status);
     main.appendChild(container);
@@ -55,7 +59,7 @@ eagle.onPluginCreate((plugin) => {
 
     window.addEventListener('focus', monitorClipboard);
 
-    // Add event listener for the button
+    // Add event listener for the replace button
     button.addEventListener('click', async () => {
         const filePath = clipboardContent.textContent;
         const status = document.getElementById('status');
@@ -66,14 +70,12 @@ eagle.onPluginCreate((plugin) => {
         }
 
         try {
-            // Get selected file(s)
             const selected = await eagle.item.getSelected();
             if (!selected || selected.length === 0) {
                 status.textContent = 'Error: No file selected';
                 return;
             }
 
-            // Replace the first selected file with the specified path
             const item = selected[0];
             const result = await item.replaceFile(filePath);
 
@@ -87,16 +89,43 @@ eagle.onPluginCreate((plugin) => {
             status.textContent = `Error: ${error.message}`;
         }
     });
+
+    // Add event listener for the replace_original button
+    button2.addEventListener('click', async () => {
+        const status = document.getElementById('status');
+
+        try {
+            const selected = await eagle.item.getSelected();
+            if (!selected || selected.length === 0) {
+                status.textContent = 'Error: No file selected';
+                return;
+            }
+
+            const item = selected[0];
+            const originalFilePath = item.path.replace(/(\.[^.]+)$/, '_original$1');
+
+            const result = await item.replaceFile(originalFilePath);
+
+            if (result) {
+                status.textContent = 'Success: File replaced with original successfully';
+            } else {
+                status.textContent = 'Error: Failed to replace file with original';
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            status.textContent = `Error: ${error.message}`;
+        }
+    });
 });
 
-eagle.onPluginRun(() => {
-    console.log('Plugin is running');
-});
+// eagle.onPluginRun(() => {
+//     console.log('Plugin is running');
+// });
 
-eagle.onPluginHide(() => {
-    console.log('Plugin hidden');
-});
+// eagle.onPluginHide(() => {
+//     console.log('Plugin hidden');
+// });
 
-eagle.onPluginBeforeExit((event) => {
-    console.log('Plugin is exiting');
-});
+// eagle.onPluginBeforeExit((event) => {
+//     console.log('Plugin is exiting');
+// });
