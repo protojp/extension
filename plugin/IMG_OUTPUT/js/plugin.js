@@ -9,7 +9,8 @@ eagle.onPluginCreate(async(plugin) =>
 
     const startDate = new Date('2024-12-26');
     const endDate = new Date('2024-12-26');
-	const addRequiredTags = ["ubel"];//必須タグに追加するタグ
+	const addRequiredTags = ["yor forger"];//必須タグに追加するタグ Mimosa Vermillion
+	const dateRange = 1;//日付をまたいだ場合などに1日以上の範囲を指定する際に使う。2だと2日分の範囲になる。
 
     const baseOutputFolder = 'E:\\SD_IMGS\\Discord';
     const watermarkPath = 'E:\\Dropbox\\@Watermark\\@proto_jp.png';
@@ -143,7 +144,7 @@ eagle.onPluginCreate(async(plugin) =>
             if (
                 targetRatings.includes(item.star) &&
                 itemDate >= startDate &&
-                itemDate < new Date(endDate.getTime() + 86400000) &&
+                itemDate < new Date(endDate.getTime() + 86400000*dateRange) &&
                 imageWidth <= 4800 &&
                 imageHeight <= 4800 &&
                 hasRequiredTags &&
