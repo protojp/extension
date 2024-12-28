@@ -10,7 +10,7 @@ eagle.onPluginCreate(async(plugin) =>
     const startDate = new Date('2024-12-26');
     const endDate = new Date('2024-12-26');
 	const addRequiredTags = ["yor forger"];//必須タグに追加するタグ Mimosa Vermillion
-	const dateRange = 1;//日付をまたいだ場合などに1日以上の範囲を指定する際に使う。2だと2日分の範囲になる。
+	const dateRange = 2;//日付をまたいだ場合などに1日以上の範囲を指定する際に使う。2だと2日分の範囲になる。
 
     const baseOutputFolder = 'E:\\SD_IMGS\\Discord';
     const watermarkPath = 'E:\\Dropbox\\@Watermark\\@proto_jp.png';

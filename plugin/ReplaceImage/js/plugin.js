@@ -70,12 +70,14 @@ eagle.onPluginCreate((plugin) => {
         }
 
         try {
+            // Get selected file(s)
             const selected = await eagle.item.getSelected();
             if (!selected || selected.length === 0) {
                 status.textContent = 'Error: No file selected';
                 return;
             }
 
+            // Replace the first selected file with the specified path
             const item = selected[0];
             const result = await item.replaceFile(filePath);
 
@@ -94,15 +96,27 @@ eagle.onPluginCreate((plugin) => {
     button2.addEventListener('click', async () => {
         const status = document.getElementById('status');
 
+        console.log("button2!!!!")
+
         try {
+            // Get selected file(s)
             const selected = await eagle.item.getSelected();
             if (!selected || selected.length === 0) {
                 status.textContent = 'Error: No file selected';
                 return;
             }
 
+            console.log(selected);
+
+            // Replace with the _original file
             const item = selected[0];
-            const originalFilePath = item.path.replace(/(\.[^.]+)$/, '_original$1');
+            if (!item.filePath) {
+                status.textContent = 'Error: Selected item has no path';
+                return;
+            }
+
+            const originalFilePath = item.filePath.replace(/(\.[^.]+)$/, '_original$1');
+            console.log('Original file path:', originalFilePath);
 
             const result = await item.replaceFile(originalFilePath);
 
