@@ -104,6 +104,10 @@ eagle.onPluginCreate(async(plugin) => {
 					continue;
 				}
 
+				// 画像を置き換える前に元の画像を保存
+				const originalFilePath = path.join(path.dirname(filePath), path.basename(filePath, path.extname(filePath)) + '_original' + path.extname(filePath));
+				await fs.copyFile(filePath, originalFilePath);
+
 				// 画像を置き換え
 				if(replaceImage)
 					await item.replaceFile(mosaicFilePath);
