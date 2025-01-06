@@ -7,10 +7,10 @@ eagle.onPluginCreate(async(plugin) =>
     const archiver = require('archiver');
     const Jimp = require('jimp');
 
-    const startDate = new Date('2024-12-26');
-    const endDate = new Date('2024-12-26');
-	const addRequiredTags = ["yor forger"];//必須タグに追加するタグ Mimosa Vermillion
-	const dateRange = 1;//日付をまたいだ場合などに1日以上の範囲を指定する際に使う。2だと2日分の範囲になる。
+    const startDate = new Date('2024-12-31');
+    const endDate = new Date('2024-12-31');
+	const addRequiredTags = ["momo ayase"];//必須タグに追加するタグ Mimosa Vermillion
+	const dateRange = 1;//※イマイチ想定通り動かない？日付別にファイルが生成される。日付をまたいだ場合などに1日以上の範囲を指定する際に使う。2だと2日分の範囲になる。
 
     const baseOutputFolder = 'E:\\SD_IMGS\\Discord';
     const watermarkPath = 'E:\\Dropbox\\@Watermark\\@proto_jp.png';
@@ -229,25 +229,33 @@ eagle.onPluginCreate(async(plugin) =>
 		return selectedItems;
 	}
 
-    function generateUniqueFilePath(baseFolder, dateString, suffix, extension, isTiled = false) {
-		// タイル画像の場合は名前に_tiledを追加
+	function generateUniqueFilePath(baseFolder, dateString, suffix, extension, isTiled = false) {
 		const tiledSuffix = isTiled ? '_tiled' : '';
-        const baseFileName = `${dateString}_${suffix}${tiledSuffix}`;
-
-        const basePath = path.join(baseFolder, `${baseFileName}.${extension}`);
-        if (!fs.existsSync(basePath)) {
-            return basePath;
-        }
-
-        let counter = 1;
-        let newPath;
-        do {
-            newPath = path.join(baseFolder, `${baseFileName}_${counter}.${extension}`);
-            counter++;
-        } while (fs.existsSync(newPath));
-
-        return newPath;
-    }
+		
+		// 基本のファイル名を生成（カウンターなし）
+		const baseFileName = `${dateString}_${suffix}`;
+		const basePath = path.join(baseFolder, `${baseFileName}${tiledSuffix}.${extension}`);
+		
+		// ファイルが存在しない場合は基本パスを返す
+		if (!fs.existsSync(basePath)) {
+			return basePath;
+		}
+		
+		// ファイルが存在する場合はカウンターを追加
+		let counter = 1;
+		let newPath;
+		do {
+			// isTiledの場合は${counter}${tiledSuffix}.${extension}の順
+			if (isTiled) {
+				newPath = path.join(baseFolder, `${baseFileName}_${counter}${tiledSuffix}.${extension}`);
+			} else {
+				newPath = path.join(baseFolder, `${baseFileName}${tiledSuffix}_${counter}.${extension}`);
+			}
+			counter++;
+		} while (fs.existsSync(newPath));
+		
+		return newPath;
+	}
 
 	function createOutputPaths(dateString, level) {
 		const [year, month, day] = dateString.split('-');

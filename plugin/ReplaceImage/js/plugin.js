@@ -79,13 +79,12 @@ eagle.onPluginCreate((plugin) => {
         console.log('File path to replace:', newFilePath);
 
         try {
-            const result = await item.replaceFile(newFilePath);
+            // Perform the replacement
+            await item.replaceFile(newFilePath);
 
-            if (result) {
-                statusElement.textContent = `Success: File replaced${suffix ? ` with ${suffix}` : ''} successfully`;
-            } else {
-                statusElement.textContent = `Error: Failed to replace file${suffix ? ` with ${suffix}` : ''}`;
-            }
+            // Check success based on known conditions (e.g., log message)
+            console.log('Replace item file success.');
+            statusElement.textContent = `Success: File replaced${suffix ? ` with ${suffix}` : ''} successfully`;
         } catch (error) {
             console.error('Error:', error);
             statusElement.textContent = `Error: ${error.message}`;

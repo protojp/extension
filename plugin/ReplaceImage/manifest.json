@@ -6,10 +6,10 @@
     "name": "ReplaceImage",
     "logo": "/logo.png",
     "keywords": [],
-    "devTools": true,
+    "devTools": false,
     "main": {
         "url": "index.html",
-        "width": 800,
-        "height": 800
+        "width": 400,
+        "height": 400
     }
 }
