@@ -52,10 +52,10 @@ eagle.onPluginCreate(async(plugin) => {
 		const scriptPath = 'D:\\ai\\automosaic_2024-08-17\\automosaic.py';
 
 		// 各画像に対してモザイク処理を実行
-		// 各画像に対してモザイク処理を実行
 		for (const item of items) {
-
-			if (item.tags.length === 0 && tagFilter) continue;
+			
+			if (item.tags.length === 0 && tagFilter 
+				|| (1024>item.height || 1024>item.width))continue;
 			
 			const filePath = item.filePath;
 
