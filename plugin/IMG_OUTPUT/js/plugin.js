@@ -3,18 +3,23 @@ eagle.onPluginCreate(async(plugin) =>
     console.log("!!START!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
 
     const fs = require('fs');
-    const path = require('path');
     const archiver = require('archiver');
     const Jimp = require('jimp');
+	const path = require('path');
+	const { execFile } = require('child_process');
 
-    const startDate = new Date('2024-12-31');
-    const endDate = new Date('2024-12-31');
-	const addRequiredTags = ["momo ayase"];//必須タグに追加するタグ Mimosa Vermillion
+    const startDate = new Date('2025-01-01');
+    const endDate = new Date('2025-01-06');
+	const addRequiredTags = ["boa hancock"];//必須タグに追加するタグ Mimosa Vermillion
 	const dateRange = 1;//※イマイチ想定通り動かない？日付別にファイルが生成される。日付をまたいだ場合などに1日以上の範囲を指定する際に使う。2だと2日分の範囲になる。
 
     const baseOutputFolder = 'E:\\SD_IMGS\\Discord';
     const watermarkPath = 'E:\\Dropbox\\@Watermark\\@proto_jp.png';
     const tileSize = 500;
+
+	// 仮想環境内のPython実行ファイルのパス
+	const pythonPath = 'C:\\github\\protojp\\sns\\myvenv\\Scripts\\python.exe';
+	const updateTagsPy = 'C:\\github\\protojp\\sns\\upload\\update_json_tags.py';
 
     // 出力条件配列
     const outputImageTerms = [
@@ -518,13 +523,37 @@ eagle.onPluginCreate(async(plugin) =>
 		await tiledImage.quality(90).writeAsync(tiledImagePath);
 	}
 
+	async function runPythonScript(jsonPath) {
+		try {
+			const args = ['--file', jsonPath];
+			const { stdout, stderr } = await new Promise((resolve, reject) => {
+				execFile(pythonPath, [updateTagsPy, ...args], {
+					cwd: path.dirname(updateTagsPy)
+				}, (error, stdout, stderr) => {
+					if (error) {
+						reject({ error, stdout, stderr });
+					} else {
+						resolve({ stdout, stderr });
+					}
+				});
+			});
+	
+			if (stdout) console.log('Python出力:', stdout);
+			if (stderr) console.error('Pythonエラー:', stderr);
+		} catch (error) {
+			console.error('Pythonスクリプト実行エラー:', error);
+			throw error;
+		}
+	}
+
 	async function finalizeArchive(archive, output, closePromise, tiledImagePath, metadata, outputFolder, dateString, tempFiles, jsonLevel) {
 		archive.file(tiledImagePath, { name: path.basename(tiledImagePath) });
 
 		await archive.finalize();
 		await closePromise;
 
-		saveMetadata(metadata, outputFolder, dateString, jsonLevel);
+		const metadataPath = await saveMetadata(metadata, outputFolder, dateString, jsonLevel);
+        await runPythonScript(metadataPath);
 
 		console.log(`ZIPファイルが正常に保存されました: ${output.path}`);
 		console.log(`タイル状の画像が保存されました: ${tiledImagePath}`);
