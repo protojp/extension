@@ -92,8 +92,11 @@ eagle.onPluginCreate(async(plugin) => {
 					});
 				});
 
+				// 元ファイルの拡張子を取得
+				const originalExt = path.extname(filePath);
+
 				// モザイク処理済みファイルのパスを生成
-				const mosaicFileName = path.basename(filePath, path.extname(filePath)) + '_mosaic.png';
+				const mosaicFileName = path.basename(filePath, originalExt) + '_mosaic' + originalExt;
 				const mosaicFilePath = path.join(path.dirname(filePath), mosaicFileName);
 
 				// モザイク画像が存在しない場合はスキップ

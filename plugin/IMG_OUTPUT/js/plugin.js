@@ -8,9 +8,9 @@ eagle.onPluginCreate(async(plugin) =>
 	const path = require('path');
 	const { execFile } = require('child_process');
 
-    const startDate = new Date('2025-01-01');
-    const endDate = new Date('2025-01-06');
-	const addRequiredTags = ["boa hancock"];//必須タグに追加するタグ Mimosa Vermillion
+    const startDate = new Date('2025-01-18');
+    const endDate = new Date('2025-01-18');
+	const addRequiredTags = ["yaoyorozu momo"];//必須タグに追加するタグ Mimosa Vermillion
 	const dateRange = 1;//※イマイチ想定通り動かない？日付別にファイルが生成される。日付をまたいだ場合などに1日以上の範囲を指定する際に使う。2だと2日分の範囲になる。
 
     const baseOutputFolder = 'E:\\SD_IMGS\\Discord';
@@ -36,49 +36,35 @@ eagle.onPluginCreate(async(plugin) =>
             maxImages: 36,
             requiredTags: ["nsfw","nude"],
             notTags: ["1boy"]
-        },
-		{
-            suffix: "Lv2-sex",
-            ratings: [3, 2, 1],
-            maxImages: 6,
-            requiredTags: ["nsfw","nude","1boy"],
-            notTags: []
-        },
-		{
-            suffix: "Lv2-nude",
-            ratings: [3, 2, 1],
-            maxImages: 6,
-            requiredTags: ["nsfw","nude"],
-            notTags: ["1boy"]
-        },
-        {
-            suffix: "Lv2",
-            ratings: [3, 2, 1],
-            maxImages: 25,
-            requiredTags: [],
-            notTags: ["nsfw"]
-        },
-        {
-            suffix: "Lv1",
-            ratings: [2, 1],
-            maxImages: 4,
-            requiredTags: [],
-            notTags: ["nsfw"]
         }
-		// {
-        //     suffix: "Lv3",
+		// ,{
+        //     suffix: "Lv2-sex",
         //     ratings: [3, 2, 1],
-        //     maxImages: 25,
-        //     requiredTags: ["kurokawa akane"],
+        //     maxImages: 6,
+        //     requiredTags: ["nsfw","nude","1boy"],
         //     notTags: []
         // },
 		// {
-		// 	suffix: "Lv2",
-		// 	ratings: [3, 2, 1],
-		// 	maxImages: 25,
-		// 	requiredTags: [],
-		// 	notTags: ["nsfw"]
-		// }
+        //     suffix: "Lv2-nude",
+        //     ratings: [3, 2, 1],
+        //     maxImages: 6,
+        //     requiredTags: ["nsfw","nude"],
+        //     notTags: ["1boy"]
+        // },
+        // {
+        //     suffix: "Lv2",
+        //     ratings: [3, 2, 1],
+        //     maxImages: 25,
+        //     requiredTags: [],
+        //     notTags: ["nsfw"]
+        // },
+        // {
+        //     suffix: "Lv1",
+        //     ratings: [2, 1],
+        //     maxImages: 4,
+        //     requiredTags: [],
+        //     notTags: ["nsfw"]
+        // }
     ];
 
     const watermarkConfig = {
