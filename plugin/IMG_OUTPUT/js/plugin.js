@@ -8,11 +8,12 @@ eagle.onPluginCreate(async(plugin) =>
 	const path = require('path');
 	const { execFile } = require('child_process');
 
-    const startDate = new Date('2025-01-15');
-    const endDate = new Date('2025-01-17');
-	const addRequiredTags = ["tsuyuri kanao"];//必須タグに追加するタグ Mimosa Vermillion
+    const startDate = new Date('2025-01-20');
+    const endDate = new Date('2025-01-23');
+	const addRequiredTags = ["emilia (re:zero)"];//必須タグに追加するタグ Mimosa Vermillion
 	const dateRange = 1;//※イマイチ想定通り動かない？日付別にファイルが生成される。日付をまたいだ場合などに1日以上の範囲を指定する際に使う。2だと2日分の範囲になる。
 
+	const output1stFolderName = "1stOutputWebUI";//'1stOutputWebUI';//生成時出力フォルダ。処理終了の判定に使う。
     const baseOutputFolder = 'E:\\SD_IMGS\\Discord';
     const watermarkPath = 'E:\\Dropbox\\@Watermark\\@proto_jp.png';
     const tileSize = 500;
@@ -51,21 +52,24 @@ eagle.onPluginCreate(async(plugin) =>
             requiredTags: ["nsfw","nude"],
             notTags: ["1boy"]
         }
-        ,{
-            suffix: "Lv2",
-            ratings: [3, 2, 1],
-            maxImages: 25,
-            requiredTags: [],
-            notTags: ["nsfw"]
-        }
-        ,{
-            suffix: "Lv1",
-            ratings: [2, 1],
-            maxImages: 4,
-            requiredTags: [],
-            notTags: ["nsfw"]
-        }
+        // ,{
+        //     suffix: "Lv2",
+        //     ratings: [3, 2, 1],
+        //     maxImages: 25,
+        //     requiredTags: [],
+        //     notTags: ["nsfw"]
+        // }
+        // ,{
+        //     suffix: "Lv1",
+        //     ratings: [2, 1],
+        //     maxImages: 4,
+        //     requiredTags: [],
+        //     notTags: ["nsfw"]
+        // }
     ];
+	
+	const folders = await eagle.folder.getAll();// すべてのフォルダを取得
+	const targetFolder = folders.find(folder => folder.name === output1stFolderName);
 
     const watermarkConfig = {
         width: 300,
@@ -175,7 +179,7 @@ eagle.onPluginCreate(async(plugin) =>
     async function processDateItems(dateString, dateItems, suffix, maxImages, processedSeeds) {
         const selectedItems = selectItems(dateItems, maxImages, processedSeeds);
 
-        const { outputFolder, outputPath, tiledImagePath } = createOutputPaths(dateString, suffix);
+        const { outputFolder, outputPath, tiledImagePath } = createOutputPaths(dateString, suffix, selectedItems);
 
         createOutputFolder(outputFolder);
 
@@ -248,9 +252,16 @@ eagle.onPluginCreate(async(plugin) =>
 		return newPath;
 	}
 
-	function createOutputPaths(dateString, level) {
+	function createOutputPaths(dateString, level, selectedItems) {
 		const [year, month, day] = dateString.split('-');
-		const outputFolder = path.join(baseOutputFolder, year, month);
+		let outputFolder = path.join(baseOutputFolder, year, month);
+		
+		// 条件に基づいて "_Uncensored" を追加
+		if (selectedItems.some(item => 
+			item.folders.includes(targetFolder.id) && 
+			item.tags.includes("nsfw"))) {
+			outputFolder = path.join(outputFolder, "_Uncensored");
+		}
 	
 		const outputPath = generateUniqueFilePath(outputFolder, dateString, level, 'zip');
 		const tiledImagePath = generateUniqueFilePath(outputFolder, dateString, level, 'jpg', true);
@@ -261,7 +272,7 @@ eagle.onPluginCreate(async(plugin) =>
 			tiledImagePath, 
 			fileNameSuffix: path.basename(outputPath, '.zip').split('_')[1] || '' 
 		};
-	}
+	}	
 
 	function createOutputFolder(outputFolder) {
 		if (!fs.existsSync(outputFolder)) {
