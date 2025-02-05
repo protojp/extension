@@ -8,9 +8,10 @@ eagle.onPluginCreate(async(plugin) =>
 	const path = require('path');
 	const { execFile } = require('child_process');
 
-    const startDate = new Date('2025-01-20');
-    const endDate = new Date('2025-01-23');
-	const addRequiredTags = ["emilia (re:zero)"];//必須タグに追加するタグ Mimosa Vermillion
+    const startDate = new Date('2025-02-01');
+    const endDate = new Date('2025-02-03');
+	const addRequiredTags = ["rory mercury"];//必須タグに追加するタグ Mimosa Vermillion
+	
 	const dateRange = 1;//※イマイチ想定通り動かない？日付別にファイルが生成される。日付をまたいだ場合などに1日以上の範囲を指定する際に使う。2だと2日分の範囲になる。
 
 	const output1stFolderName = "1stOutputWebUI";//'1stOutputWebUI';//生成時出力フォルダ。処理終了の判定に使う。
@@ -52,20 +53,21 @@ eagle.onPluginCreate(async(plugin) =>
             requiredTags: ["nsfw","nude"],
             notTags: ["1boy"]
         }
-        // ,{
-        //     suffix: "Lv2",
-        //     ratings: [3, 2, 1],
-        //     maxImages: 25,
-        //     requiredTags: [],
-        //     notTags: ["nsfw"]
-        // }
-        // ,{
-        //     suffix: "Lv1",
-        //     ratings: [2, 1],
-        //     maxImages: 4,
-        //     requiredTags: [],
-        //     notTags: ["nsfw"]
-        // }
+        ,{
+            suffix: "Lv2",
+            ratings: [3, 2, 1],
+            maxImages: 25,
+            requiredTags: [],
+            notTags: ["nsfw"]
+        }
+        ,
+		{
+            suffix: "Lv1",
+            ratings: [2, 1],
+            maxImages: 4,
+            requiredTags: [],
+            notTags: ["nsfw"]
+        }
     ];
 	
 	const folders = await eagle.folder.getAll();// すべてのフォルダを取得

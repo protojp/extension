@@ -20,14 +20,14 @@ eagle.onPluginCreate((plugin) => {
     clipboardContent.textContent = 'Clipboard content will appear here';
 
     const button = document.createElement('button');
-    button.textContent = '📋Replace';
-    button.style.width = '75%';
+    button.textContent = '📋Replace Path';
+    button.style.width = '50%';
     button.style.height = '50px';
     button.id = 'replaceButton';
 
     const button2 = document.createElement('button');
     button2.textContent = '🔄Original';
-    button2.style.width = '25%';
+    button2.style.width = '50%';
     button2.style.height = '50px';
     button2.id = 'replace_original';
 
