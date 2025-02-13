@@ -4,32 +4,41 @@ eagle.onPluginCreate((plugin) => {
     // Add HTML elements dynamically to the page
     const main = document.querySelector('main');
     const container = document.createElement('div');
-    container.style.margin = '5px';
+    container.style.margin = '5px 0';
+    container.style.display = 'flex';
+    container.style.justifyContent = 'space-between'
 
-    const clipboardContent = document.createElement('div');
-    clipboardContent.id = 'clipboardContent';
-    clipboardContent.style.display = 'block';
-    clipboardContent.style.margin = '0 auto';
-    clipboardContent.style.height = '50px';
-    clipboardContent.style.overflowY = 'scroll';
-    clipboardContent.style.border = '1px solid #ccc';
-    clipboardContent.style.backgroundColor = '#fff';
-    clipboardContent.style.color = '#000';
-    clipboardContent.style.padding = '10px';
-    clipboardContent.style.marginBottom = '10px';
-    clipboardContent.textContent = 'Clipboard content will appear here';
+    const buttonOriginal = document.createElement('button');
+    buttonOriginal.textContent = '🔄Original';
+    buttonOriginal.style.boxSizing = 'border-box'
+    buttonOriginal.style.width = '100%';
+    buttonOriginal.style.height = '50px';
+    buttonOriginal.style.margin = '10px 0';
+    buttonOriginal.id = 'originalButton';
 
     const button = document.createElement('button');
     button.textContent = '📋Replace Path';
+    button.style.display = 'inline-block';
+    button.style.boxSizing = 'border-box'
     button.style.width = '50%';
     button.style.height = '50px';
+    button.style.margin = '0';
+    button.style.padding = '0';
     button.id = 'replaceButton';
 
-    const button2 = document.createElement('button');
-    button2.textContent = '🔄Original';
-    button2.style.width = '50%';
-    button2.style.height = '50px';
-    button2.id = 'replace_original';
+    const clipboardContent = document.createElement('div');
+    clipboardContent.id = 'clipboardContent';
+    clipboardContent.style.display = 'inline-block';
+    // clipboardContent.style.margin = '0 auto';
+    clipboardContent.style.width = '48%';
+    clipboardContent.style.height = '50px';
+    clipboardContent.style.marginRight = '2%';
+    clipboardContent.style.overflowY = 'scroll';
+    // clipboardContent.style.border = '1px solid #ccc';
+    clipboardContent.style.backgroundColor = '#fff';
+    clipboardContent.style.color = '#000';
+
+    clipboardContent.textContent = 'Clipboard content will appear here';
 
     const status = document.createElement('div');
     status.id = 'status';
@@ -37,9 +46,9 @@ eagle.onPluginCreate((plugin) => {
     status.style.color = 'yellow';
 
     container.appendChild(clipboardContent);
-    container.appendChild(button2);
     container.appendChild(button);
     container.appendChild(status);
+    main.appendChild(buttonOriginal);
     main.appendChild(container);
 
     // Clipboard monitoring on window focus
@@ -98,8 +107,8 @@ eagle.onPluginCreate((plugin) => {
         await replaceFile(selected, '', status);
     });
 
-    // Add event listener for the replace_original button
-    button2.addEventListener('click', async () => {
+    // Add event listener for the originalButton button
+    buttonOriginal.addEventListener('click', async () => {
         const status = document.getElementById('status');
         const selected = await eagle.item.getSelected();
         await replaceFile(selected, '_original', status);

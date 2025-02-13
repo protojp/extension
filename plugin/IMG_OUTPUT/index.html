@@ -5,15 +5,62 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
     <script type="text/javascript" src="js/plugin.js"></script>
     <style>
-        body{
+        body {
             color: #ccc;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        input {
+            background: #333;
+            border: 1px solid #555;
+            color: #fff;
+            padding: 5px 10px;
+            border-radius: 4px;
+            width: 200px;
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        button:disabled {
+            background: #888;
+            cursor: not-allowed;
+        }
+        #message {
+            margin-top: 20px;
+            color: #4CAF50;
         }
     </style>
 </head>
-
 <body>
-	<div id="message"></div>
-</body>
+    <div class="form-group">
+        <label for="startDate">開始日:</label>
+        <input type="date" id="startDate" required>
+    </div>
+    <div class="form-group">
+        <label for="endDate">終了日:</label>
+        <input type="date" id="endDate" required>
+    </div>
+    <div class="form-group">
+        <label for="requiredTags">必須タグ (カンマ区切り):</label>
+        <input type="text" id="requiredTags" placeholder="tag1, tag2, tag3">
+    </div>
+    <button id="startButton">実行</button>
+    <div id="message"></div>
 
 <script>
 // const sharp = require('sharp');
@@ -31,4 +78,5 @@
 // setTimeout(run, 100);
 
 </script>
+</body>
 </html>

@@ -8,22 +8,8 @@ eagle.onPluginCreate(async(plugin) =>
 	const path = require('path');
 	const { execFile } = require('child_process');
 
-    const startDate = new Date('2025-02-01');
-    const endDate = new Date('2025-02-03');
-	const addRequiredTags = ["rory mercury"];//必須タグに追加するタグ Mimosa Vermillion
-	
-	const dateRange = 1;//※イマイチ想定通り動かない？日付別にファイルが生成される。日付をまたいだ場合などに1日以上の範囲を指定する際に使う。2だと2日分の範囲になる。
+    let startDate, endDate, addRequiredTags, dateRange, output1stFolderName, baseOutputFolder, watermarkPath, tileSize, pythonPath, updateTagsPy;
 
-	const output1stFolderName = "1stOutputWebUI";//'1stOutputWebUI';//生成時出力フォルダ。処理終了の判定に使う。
-    const baseOutputFolder = 'E:\\SD_IMGS\\Discord';
-    const watermarkPath = 'E:\\Dropbox\\@Watermark\\@proto_jp.png';
-    const tileSize = 500;
-
-	// 仮想環境内のPython実行ファイルのパス
-	const pythonPath = 'C:\\github\\protojp\\sns\\myvenv\\Scripts\\python.exe';
-	const updateTagsPy = 'C:\\github\\protojp\\sns\\upload\\update_json_tags.py';
-
-    // 出力条件配列
     const outputImageTerms = [
 		{
             suffix: "Lv3-sex",
@@ -39,7 +25,8 @@ eagle.onPluginCreate(async(plugin) =>
             requiredTags: ["nsfw","nude"],
             notTags: ["1boy"]
         }
-		,{
+		,
+		{
             suffix: "Lv2-sex",
             ratings: [3, 2, 1],
             maxImages: 6,
@@ -53,7 +40,8 @@ eagle.onPluginCreate(async(plugin) =>
             requiredTags: ["nsfw","nude"],
             notTags: ["1boy"]
         }
-        ,{
+        ,
+		{
             suffix: "Lv2",
             ratings: [3, 2, 1],
             maxImages: 25,
@@ -71,7 +59,6 @@ eagle.onPluginCreate(async(plugin) =>
     ];
 	
 	const folders = await eagle.folder.getAll();// すべてのフォルダを取得
-	const targetFolder = folders.find(folder => folder.name === output1stFolderName);
 
     const watermarkConfig = {
         width: 300,
@@ -135,6 +122,9 @@ eagle.onPluginCreate(async(plugin) =>
             const hasRequiredTags = requiredTags.length === 0 || 
                 (item.tags && requiredTags.every(tag => item.tags.includes(tag)));
 
+            const hasAddRequiredTags = addRequiredTags.length === 0 || 
+                (item.tags && addRequiredTags.every(tag => item.tags.includes(tag)));
+
             const hasNotTags = notTags.length > 0 && 
                 (item.tags && notTags.some(tag => item.tags.includes(tag)));
 
@@ -145,6 +135,7 @@ eagle.onPluginCreate(async(plugin) =>
                 imageWidth <= 4800 &&
                 imageHeight <= 4800 &&
                 hasRequiredTags &&
+                hasAddRequiredTags &&
                 !hasNotTags
             ) {
                 if (seed) {
@@ -181,7 +172,8 @@ eagle.onPluginCreate(async(plugin) =>
     async function processDateItems(dateString, dateItems, suffix, maxImages, processedSeeds) {
         const selectedItems = selectItems(dateItems, maxImages, processedSeeds);
 
-        const { outputFolder, outputPath, tiledImagePath } = createOutputPaths(dateString, suffix, selectedItems);
+        const targetFolder = await getTargetFolder();
+        const { outputFolder, outputPath, tiledImagePath } = createOutputPaths(dateString, suffix, selectedItems, targetFolder);
 
         createOutputFolder(outputFolder);
 
@@ -254,7 +246,7 @@ eagle.onPluginCreate(async(plugin) =>
 		return newPath;
 	}
 
-	function createOutputPaths(dateString, level, selectedItems) {
+	function createOutputPaths(dateString, level, selectedItems, targetFolder) {
 		const [year, month, day] = dateString.split('-');
 		let outputFolder = path.join(baseOutputFolder, year, month);
 		
@@ -585,22 +577,115 @@ eagle.onPluginCreate(async(plugin) =>
 		}
 	}
 
-	// 実行
-	(async () => {
-		try {
-			await processImages();
-		} catch (error) {
-			console.error("プログラムの実行中にエラーが発生しました:", error);
-		}
-	})();
+	// グローバル変数の初期化
+	const initializeVariables = async () => {
+        output1stFolderName = "1stOutputWebUI";//生成時出力フォルダ。処理終了の判定に使う。
+        baseOutputFolder = 'E:\\SD_IMGS\\Discord';
+        watermarkPath = 'E:\\Dropbox\\@Watermark\\@proto_jp.png';
+        tileSize = 500;
+        dateRange = 1;//※イマイチ想定通り動かない？日付別にファイルが生成される。日付をまたいだ場合などに1日以上の範囲を指定する際に使う。2だと2日分の範囲になる。
+        pythonPath = 'C:\\github\\protojp\\sns\\myvenv\\Scripts\\python.exe';
+        updateTagsPy = 'C:\\github\\protojp\\sns\\upload\\update_json_tags.py';
+    };
 
+    // 出力フォルダを取得
+    const getTargetFolder = async () => {
+        const folders = await eagle.folder.getAll();
+        const targetFolder = folders.find(folder => folder.name === output1stFolderName);
+        if (!targetFolder) {
+            throw new Error(`フォルダ '${output1stFolderName}' が見つかりません`);
+        }
+        return targetFolder;
+    };
 
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    // UIから実行される関数
+    async function startProcess() {
+        const button = document.getElementById('startButton');
+        button.disabled = true; // ボタンを無効化
+        try {
+            // 変数の初期化
+            await initializeVariables();
 
+            // 入力値を取得
+            startDate = new Date(document.getElementById('startDate').value);
+            endDate = new Date(document.getElementById('endDate').value);
+            
+            // タグを配列に変換（カンマで区切って、空白を削除）
+            const tagsInput = document.getElementById('requiredTags').value;
+            addRequiredTags = tagsInput.split(',').map(tag => tag.trim()).filter(tag => tag !== '');
 
+            // 入力値の検証
+            if (!startDate || !endDate) {
+                document.getElementById('message').textContent = '日付を入力してください';
+                return;
+            }
 
+            if (startDate > endDate) {
+                document.getElementById('message').textContent = '開始日は終了日より前である必要があります';
+                return;
+            }
 
-	
+            document.getElementById('message').textContent = '処理を開始しました...';
+            
+            await processImages();
+            document.getElementById('message').textContent = '処理が完了しました！';
+        } catch (error) {
+            document.getElementById('message').textContent = 'エラーが発生しました: ' + error.message;
+            console.error("プログラムの実行中にエラーが発生しました:", error);
+        } finally {
+            button.disabled = false; // 処理完了後にボタンを有効化
+        }
+    }
+
+    // 画像処理のメイン関数を修正
+    async function processImages() {
+        const targetFolder = await getTargetFolder();
+        try {
+            console.log("画像の取得を開始します...");
+            const items = await eagle.item.get();
+            console.log(`${items.length}個のアイテムを取得しました。`);
+
+            const processedSeeds = new Set();
+
+            for (const term of outputImageTerms) {
+                const filteredItems = filterItems(items, term.ratings, term.requiredTags, term.notTags, processedSeeds);
+                console.log(`${term.suffix}フィルタリング後のアイテム数: ${filteredItems.length}`);
+
+                if (filteredItems.length > 0) {
+                    const groupedItems = groupItemsByDate(filteredItems);
+                    for (const [dateString, dateItems] of Object.entries(groupedItems)) {
+                        console.log(`${term.suffix}: ${dateString}の処理を開始します... (${dateItems.length}個のアイテム)`);
+                        await processDateItems(dateString, dateItems, term.suffix, term.maxImages, processedSeeds);
+                    }
+                }
+            }
+
+            console.log("すべての処理が完了しました。");
+        } catch (error) {
+            console.error('エラーが発生しました:', error);
+            console.error('エラーのスタックトレース:', error.stack);
+        }
+    }
+
+    // 実行
+    document.getElementById('startButton').addEventListener('click', startProcess);
+    
+    // デフォルト値を設定
+    const setDefaultDates = () => {
+        const today = new Date();
+        const oneWeekAgo = new Date(today);
+        oneWeekAgo.setDate(today.getDate() - 7);
+
+        // YYYY-MM-DD形式に変換
+        const formatDate = (date) => {
+            return date.toISOString().split('T')[0];
+        };
+
+        document.getElementById('endDate').value = formatDate(today);
+        document.getElementById('startDate').value = formatDate(oneWeekAgo);
+    };
+
+    setDefaultDates();
 });
 
 eagle.onPluginRun(async () => {
