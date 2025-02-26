@@ -15,7 +15,7 @@ eagle.onPluginCreate(async(plugin) =>
             suffix: "Lv3-sex",
             ratings: [3, 2, 1],
             maxImages: 36,
-            requiredTags: ["nsfw","nude","1boy"],
+            requiredTags: ["nsfw","nude","sex"],
             notTags: []
         }
 		,{
@@ -23,14 +23,14 @@ eagle.onPluginCreate(async(plugin) =>
             ratings: [3, 2, 1],
             maxImages: 36,
             requiredTags: ["nsfw","nude"],
-            notTags: ["1boy"]
+            notTags: ["sex"]
         }
 		,
 		{
             suffix: "Lv2-sex",
             ratings: [3, 2, 1],
             maxImages: 6,
-            requiredTags: ["nsfw","nude","1boy"],
+            requiredTags: ["nsfw","nude","sex"],
             notTags: []
         }
 		,{
@@ -38,7 +38,7 @@ eagle.onPluginCreate(async(plugin) =>
             ratings: [3, 2, 1],
             maxImages: 6,
             requiredTags: ["nsfw","nude"],
-            notTags: ["1boy"]
+            notTags: ["sex"]
         }
         ,
 		{
@@ -666,26 +666,68 @@ eagle.onPluginCreate(async(plugin) =>
             console.error('エラーのスタックトレース:', error.stack);
         }
     }
-
-    // 実行
-    document.getElementById('startButton').addEventListener('click', startProcess);
     
-    // デフォルト値を設定
-    const setDefaultDates = () => {
-        const today = new Date();
-        const oneWeekAgo = new Date(today);
-        oneWeekAgo.setDate(today.getDate() - 7);
+// デフォルト値を設定
+const setDefaultDates = () => {
+    const today = new Date();
+    const oneWeekAgo = new Date(today);
+    oneWeekAgo.setDate(today.getDate() - 7);
 
-        // YYYY-MM-DD形式に変換
-        const formatDate = (date) => {
-            return date.toISOString().split('T')[0];
-        };
-
-        document.getElementById('endDate').value = formatDate(today);
-        document.getElementById('startDate').value = formatDate(oneWeekAgo);
+    // YYYY-MM-DD形式に変換
+    const formatDate = (date) => {
+        return date.toISOString().split('T')[0];
     };
 
-    setDefaultDates();
+    document.getElementById('endDate').value = formatDate(today);
+    document.getElementById('startDate').value = formatDate(oneWeekAgo);
+};
+
+	// すべてのイベントハンドラを一箇所にまとめる
+	const setupEventHandlers = () => {
+		// 実行ボタンのイベントハンドラ
+		document.getElementById('startButton').addEventListener('click', startProcess);
+		
+		// ペーストハンドラの設定
+		const requiredTagsInput = document.getElementById('requiredTags');
+		if (requiredTagsInput) {
+			// 標準的なペーストイベントリスナーの代わりに、inputイベントを使用
+			requiredTagsInput.addEventListener('input', function(e) {
+				// 二重入力を検出して修正する
+				const inputText = this.value;
+				// テキストの後半が前半と同じパターンを持つか確認
+				const halfLength = Math.floor(inputText.length / 2);
+				if (halfLength > 0 && inputText.length % 2 === 0) {
+					const firstHalf = inputText.substring(0, halfLength);
+					const secondHalf = inputText.substring(halfLength);
+					
+					if (firstHalf === secondHalf) {
+						// 二重入力を検出したら、後半を削除
+						this.value = firstHalf;
+						// カーソル位置を最後に設定
+						this.selectionStart = this.selectionEnd = firstHalf.length;
+					}
+				}
+			});
+			
+			// フォーカスを得たときにもチェック
+			requiredTagsInput.addEventListener('focus', function(e) {
+				// 既存の内容が二重になっていないか確認
+				const inputText = this.value;
+				const halfLength = Math.floor(inputText.length / 2);
+				if (halfLength > 0 && inputText.length % 2 === 0) {
+					const firstHalf = inputText.substring(0, halfLength);
+					const secondHalf = inputText.substring(halfLength);
+					
+					if (firstHalf === secondHalf) {
+						this.value = firstHalf;
+					}
+				}
+			});
+		}
+	};
+
+	setDefaultDates();
+	setupEventHandlers();
 });
 
 eagle.onPluginRun(async () => {
