@@ -18,6 +18,7 @@ eagle.onPluginCreate(async(plugin) => {
 	const mosaicModelsTargetTag = 
 	{
 		"1boy":"penis.pt"
+		,"male pov":"penis.pt"
 		// ,"1girl":"AnimePussy_best-5.pt"
 	};
 
