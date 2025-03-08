@@ -14,12 +14,12 @@ eagle.onPluginCreate(async(plugin) => {
 
 	const replaceImage = true;//画像をモザイク画像で置き換えるかフラグ
 
-	const baseMosaicModel = "AnimePussy_best-5.pt";
+	const baseMosaicModel = "mosaic_detection_seg.pt";//"AnimePussy_best-5.pt";
 	const mosaicModelsTargetTag = 
 	{
-		"1boy":"penis.pt"
-		,"male pov":"penis.pt"
-		// ,"1girl":"AnimePussy_best-5.pt"
+		// "1boy":"penis.pt"
+		// ,"male pov":"penis.pt"
+		// // ,"1girl":"AnimePussy_best-5.pt"
 	};
 
 	async function processImage() {
@@ -48,7 +48,8 @@ eagle.onPluginCreate(async(plugin) => {
 
 		console.log(`ターゲット画像 "${items.length}" 枚`);
 
-		// 仮想環境内のPython実行ファイルのパス
+		// 仮想環境内のPython実行ファイルのパス エラーでYOLOアップデートなどする場合は下記コマンド
+		// D:\ai\automosaic_2024-08-17\venv\Scripts\pip.exe install --upgrade ultralytics
 		const pythonPath = 'D:\\ai\\automosaic_2024-08-17\\venv\\Scripts\\python.exe';
 		const scriptPath = 'D:\\ai\\automosaic_2024-08-17\\automosaic.py';
 
@@ -74,7 +75,7 @@ eagle.onPluginCreate(async(plugin) => {
 			}
 
 			// モザイクモデルをカンマ区切りで作成
-			mosaicModel += ',' + Array.from(additionalModels).join(',');
+			if (additionalModels.length) mosaicModel += ',' + Array.from(additionalModels).join(',');
 
 			console.log(`使用するモザイクモデル: ${mosaicModel}`);
 
