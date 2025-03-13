@@ -14,11 +14,11 @@ eagle.onPluginCreate(async(plugin) => {
 
 	const replaceImage = true;//画像をモザイク画像で置き換えるかフラグ
 
-	const baseMosaicModel = "mosaic_detection_seg.pt";//"AnimePussy_best-5.pt";
+	const baseMosaicModel = "AnimePussy_best-5.pt";//"AnimePussy_best-5.pt";
 	const mosaicModelsTargetTag = 
 	{
-		// "1boy":"penis.pt"
-		// ,"male pov":"penis.pt"
+		"1boy":"penis.pt"
+		,"male pov":"penis.pt"
 		// // ,"1girl":"AnimePussy_best-5.pt"
 	};
 
