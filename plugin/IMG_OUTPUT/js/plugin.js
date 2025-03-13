@@ -1,6 +1,88 @@
+// ログ出力用のユーティリティ（グローバルスコープで定義）
+const Logger = {
+    // ログレベル
+    levels: {
+        INFO: 'info',
+        WARNING: 'warning',
+        ERROR: 'error'
+    },
+    
+    // ログをHTMLに追加
+    log(message, level = 'info') {
+        // コンソールにも出力
+        console.log(message);
+        
+        // DOMが読み込まれているか確認
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => this.appendLogToHTML(message, level));
+        } else {
+            this.appendLogToHTML(message, level);
+        }
+    },
+    
+    // HTMLにログを追加
+    appendLogToHTML(message, level) {
+        const logContent = document.getElementById('log-content');
+        if (!logContent) return;
+        
+        const now = new Date();
+        const timeString = now.toLocaleTimeString();
+        
+        const logEntry = document.createElement('div');
+        logEntry.className = `log-entry log-${level}`;
+        
+        const logTime = document.createElement('span');
+        logTime.className = 'log-time';
+        logTime.textContent = `[${timeString}] `;
+        
+        const logMessage = document.createElement('span');
+        logMessage.textContent = message;
+        
+        logEntry.appendChild(logTime);
+        logEntry.appendChild(logMessage);
+        
+        logContent.appendChild(logEntry);
+        
+        // 自動スクロール - 非同期で実行して確実にDOMの更新後に実行されるようにする
+        setTimeout(() => {
+            this.scrollToBottom(logContent);
+        }, 0);
+    },
+    
+    // ログエリアを一番下までスクロール
+    scrollToBottom(element) {
+        if (!element) return;
+        element.scrollTop = element.scrollHeight;
+    },
+    
+    // 情報ログ
+    info(message) {
+        this.log(message, this.levels.INFO);
+    },
+    
+    // 警告ログ
+    warning(message) {
+        this.log(message, this.levels.WARNING);
+    },
+    
+    // エラーログ
+    error(message) {
+        this.log(message, this.levels.ERROR);
+    },
+    
+    // ログをクリア
+    clear() {
+        const logContent = document.getElementById('log-content');
+        if (logContent) {
+            logContent.innerHTML = '';
+        }
+    }
+};
+
 eagle.onPluginCreate(async(plugin) => 
 {
-    console.log("!!START!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+
+    Logger.info("プラグインを初期化しています...");
 
     const fs = require('fs');
     const archiver = require('archiver');
@@ -25,10 +107,10 @@ eagle.onPluginCreate(async(plugin) =>
                 this.settings = this.config.defaultSettings;
                 
                 // 設定が正常に読み込まれたことをログに出力
-                console.log("設定ファイルを読み込みました");
+                Logger.info("設定ファイルを読み込みました");
                 return true;
             } catch (error) {
-                console.error("設定ファイルの読み込みに失敗しました:", error);
+                Logger.error(`設定ファイルの読み込みに失敗しました: ${error.message}`);
                 return false;
             }
         },
@@ -42,10 +124,10 @@ eagle.onPluginCreate(async(plugin) =>
                     defaultSettings: this.settings
                 }, null, 2);
                 fs.writeFileSync(configPath, configData, 'utf8');
-                console.log("設定ファイルを保存しました");
+                Logger.info("設定ファイルを保存しました");
                 return true;
             } catch (error) {
-                console.error("設定ファイルの保存に失敗しました:", error);
+                Logger.error(`設定ファイルの保存に失敗しました: ${error.message}`);
                 return false;
             }
         },
@@ -75,29 +157,29 @@ eagle.onPluginCreate(async(plugin) =>
         // 画像処理のメイン関数
         async processImages() {
             try {
-                console.log("画像の取得を開始します...");
+                Logger.info("画像の取得を開始します...");
                 const items = await eagle.item.get();
-                console.log(`${items.length}個のアイテムを取得しました。`);
+                Logger.info(`${items.length}個のアイテムを取得しました。`);
 
                 this.processedSeeds.clear();
 
                 for (const term of ConfigManager.outputImageTerms) {
                     const filteredItems = this.filterItems(items, term.ratings, term.requiredTags, term.notTags);
-                    console.log(`${term.suffix}フィルタリング後のアイテム数: ${filteredItems.length}`);
+                    Logger.info(`${term.suffix}フィルタリング後のアイテム数: ${filteredItems.length}`);
 
                     if (filteredItems.length > 0) {
                         const groupedItems = this.groupItemsByDate(filteredItems);
                         for (const [dateString, dateItems] of Object.entries(groupedItems)) {
-                            console.log(`${term.suffix}: ${dateString}の処理を開始します... (${dateItems.length}個のアイテム)`);
+                            Logger.info(`${term.suffix}: ${dateString}の処理を開始します... (${dateItems.length}個のアイテム)`);
                             await this.processDateItems(dateString, dateItems, term.suffix, term.maxImages);
                         }
                     }
                 }
 
-                console.log("すべての処理が完了しました。");
+                Logger.info("すべての処理が完了しました。");
             } catch (error) {
-                console.error('エラーが発生しました:', error);
-                console.error('エラーのスタックトレース:', error.stack);
+                Logger.error(`エラーが発生しました: ${error.message}`);
+                Logger.error(`エラーのスタックトレース: ${error.stack}`);
             }
         },
 
@@ -180,7 +262,7 @@ eagle.onPluginCreate(async(plugin) =>
 
             await this.finalizeArchive(archive, output, closePromise, tiledImagePath, metadata, outputFolder, dateString, tempFiles, suffix);
 
-            console.log(`${suffix}: 処理された画像の数: ${selectedItems.length}`);
+            Logger.info(`${suffix}: 処理された画像の数: ${selectedItems.length}`);
         },
 
         // アイテムを選択
@@ -309,7 +391,7 @@ eagle.onPluginCreate(async(plugin) =>
                         this.processedSeeds.add(seed); // 処理したseedを追加
                     }
                 } catch (error) {
-                    console.error("エラーが発生しました:", error);
+                    Logger.error(`エラーが発生しました: ${error.message}`);
                 }
             }
             return { processedImages, metadata, tempFiles };
@@ -532,10 +614,10 @@ eagle.onPluginCreate(async(plugin) =>
                     });
                 });
         
-                if (stdout) console.log('Python出力:', stdout);
-                if (stderr) console.error('Pythonエラー:', stderr);
+                if (stdout) Logger.info(`Python出力: ${stdout}`);
+                if (stderr) Logger.error(`Pythonエラー: ${stderr}`);
             } catch (error) {
-                console.error('Pythonスクリプト実行エラー:', error);
+                Logger.error(`Pythonスクリプト実行エラー: ${error.message}`);
                 throw error;
             }
         },
@@ -550,8 +632,8 @@ eagle.onPluginCreate(async(plugin) =>
             const metadataPath = await this.saveMetadata(metadata, outputFolder, dateString, jsonLevel);
             await this.runPythonScript(metadataPath);
 
-            console.log(`ZIPファイルが正常に保存されました: ${output.path}`);
-            console.log(`タイル状の画像が保存されました: ${tiledImagePath}`);
+            Logger.info(`ZIPファイルが正常に保存されました: ${output.path}`);
+            Logger.info(`タイル状の画像が保存されました: ${tiledImagePath}`);
 
             this.removeTempFiles(tempFiles);
         },
@@ -561,7 +643,7 @@ eagle.onPluginCreate(async(plugin) =>
             const metadataPath = this.generateUniqueFilePath(outputFolder, dateString, jsonLevel, 'json');
         
             fs.writeFileSync(metadataPath, JSON.stringify(metadata, null, 2));
-            console.log(`メタデータJSONファイルが保存されました: ${metadataPath}`);
+            Logger.info(`メタデータJSONファイルが保存されました: ${metadataPath}`);
             return metadataPath;
         },
 
@@ -572,14 +654,14 @@ eagle.onPluginCreate(async(plugin) =>
                     try {
                         if (fs.existsSync(tempFilePath)) {
                             fs.unlinkSync(tempFilePath);
-                            console.log(`一時ファイルを削除しました: ${tempFilePath}`);
+                            Logger.info(`一時ファイルを削除しました: ${tempFilePath}`);
                         }
                     } catch (err) {
-                        console.warn(`一時ファイルの削除に失敗しました: ${tempFilePath}`, err);
+                        Logger.warning(`一時ファイルの削除に失敗しました: ${tempFilePath} - ${err.message}`);
                     }
                 });
             } else {
-                console.warn("一時ファイルが見つかりませんでした。");
+                Logger.warning("一時ファイルが見つかりませんでした。");
             }
         },
 
@@ -681,12 +763,16 @@ eagle.onPluginCreate(async(plugin) =>
                 }
 
                 document.getElementById('message').textContent = '処理を開始しました...';
+                Logger.clear(); // ログをクリア
+                Logger.info('処理を開始しました...');
                 
                 await ImageProcessor.processImages();
+                
                 document.getElementById('message').textContent = '処理が完了しました！';
+                Logger.info('処理が完了しました！');
             } catch (error) {
                 document.getElementById('message').textContent = 'エラーが発生しました: ' + error.message;
-                console.error("プログラムの実行中にエラーが発生しました:", error);
+                Logger.error(`プログラムの実行中にエラーが発生しました: ${error.message}`);
             } finally {
                 button.disabled = false; // 処理完了後にボタンを有効化
             }
@@ -703,9 +789,9 @@ eagle.onPluginCreate(async(plugin) =>
             UIController.setDefaultDates();
             UIController.setupEventHandlers();
             
-            console.log("プラグインの初期化が完了しました");
+            Logger.info("プラグインの初期化が完了しました");
         } catch (error) {
-            console.error("初期化中にエラーが発生しました:", error);
+            Logger.error(`初期化中にエラーが発生しました: ${error.message}`);
             document.getElementById('message').textContent = '初期化エラー: ' + error.message;
         }
     }
@@ -715,17 +801,17 @@ eagle.onPluginCreate(async(plugin) =>
 });
 
 eagle.onPluginRun(async () => {
-	console.log('eagle.onPluginRun');
+	Logger.info('プラグインが実行されました');
 });
 
 eagle.onPluginShow(() => {
-	console.log('eagle.onPluginShow');
+	Logger.info('プラグインが表示されました');
 });
 
 eagle.onPluginHide(() => {
-	console.log('eagle.onPluginHide');
+	Logger.info('プラグインが非表示になりました');
 });
 
 eagle.onPluginBeforeExit((event) => {
-	console.log('eagle.onPluginBeforeExit');
+	Logger.info('プラグインが終了します');
 });

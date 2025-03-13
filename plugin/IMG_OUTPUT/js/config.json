@@ -46,11 +46,11 @@
   "defaultSettings": {
     "output1stFolderName": "1stOutputWebUI",
     "baseOutputFolder": "E:\\SD_IMGS\\Discord",
-    "watermarkPath": "E:\\Dropbox\\@Watermark\\@proto_jp.png",
     "tileSize": 500,
     "dateRange": 1,
     "pythonPath": "C:\\github\\protojp\\sns\\myvenv\\Scripts\\python.exe",
     "updateTagsPy": "C:\\github\\protojp\\sns\\upload\\update_json_tags.py",
+    "watermarkPath": "E:\\Dropbox\\@Watermark\\@proto_jp.png",
     "watermarkConfig": {
       "width": 300,
       "height": 100,

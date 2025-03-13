@@ -7,16 +7,82 @@
     <style>
         body {
             color: #ccc;
-            padding: 20px;
+            padding: 0;
+            margin: 0;
             font-family: Arial, sans-serif;
+            background-color: #222;
+            height: 100vh;
+            overflow: hidden;
         }
+        
+        .container {
+            display: flex;
+            height: 100vh;
+        }
+        
+        .left-panel {
+            flex: 2;
+            padding: 20px;
+            overflow-y: auto;
+        }
+        
+        .right-panel {
+            flex: 1;
+            background-color: #111;
+            border-left: 1px solid #333;
+            padding: 10px;
+            overflow-y: auto;
+        }
+        
+        .log-header {
+            font-size: 14px;
+            font-weight: bold;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #333;
+            margin-bottom: 10px;
+            color: #4CAF50;
+        }
+        
+        #log-content {
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            line-height: 1.4;
+            white-space: pre-wrap;
+            color: #ddd;
+        }
+        
+        .log-entry {
+            margin-bottom: 5px;
+            padding-bottom: 5px;
+            border-bottom: 1px dotted #333;
+        }
+        
+        .log-time {
+            color: #888;
+            font-size: 11px;
+        }
+        
+        .log-info {
+            color: #4CAF50;
+        }
+        
+        .log-warning {
+            color: #FFC107;
+        }
+        
+        .log-error {
+            color: #F44336;
+        }
+        
         .form-group {
             margin-bottom: 15px;
         }
+        
         label {
             display: block;
             margin-bottom: 5px;
         }
+        
         input {
             background: #333;
             border: 1px solid #555;
@@ -25,6 +91,7 @@
             border-radius: 4px;
             width: 200px;
         }
+        
         button {
             background: #4CAF50;
             color: white;
@@ -33,33 +100,76 @@
             border-radius: 4px;
             cursor: pointer;
         }
+        
         button:hover {
             background: #45a049;
         }
+        
         button:disabled {
             background: #888;
             cursor: not-allowed;
         }
+        
         #message {
             margin-top: 20px;
             color: #4CAF50;
         }
+        
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .clear-log-button {
+            background: #555;
+            font-size: 12px;
+            padding: 5px 10px;
+        }
+        
+        .clear-log-button:hover {
+            background: #666;
+        }
     </style>
 </head>
 <body>
-    <div class="form-group">
-        <label for="startDate">開始日:</label>
-        <input type="date" id="startDate" required>
+    <div class="container">
+        <!-- 左側パネル：操作エリア -->
+        <div class="left-panel">
+            <div class="form-group">
+                <label for="startDate">開始日:</label>
+                <input type="date" id="startDate" required>
+            </div>
+            <div class="form-group">
+                <label for="endDate">終了日:</label>
+                <input type="date" id="endDate" required>
+            </div>
+            <div class="form-group">
+                <label for="requiredTags">必須タグ (カンマ区切り):</label>
+                <input type="text" id="requiredTags" placeholder="tag1, tag2, tag3">
+            </div>
+            <button id="startButton">実行</button>
+            <div id="message"></div>
+        </div>
+        
+        <!-- 右側パネル：ログ出力エリア -->
+        <div class="right-panel">
+            <div class="log-header">
+                実行ログ
+                <button class="clear-log-button" id="clearLogButton">クリア</button>
+            </div>
+            <div id="log-content"></div>
+        </div>
     </div>
-    <div class="form-group">
-        <label for="endDate">終了日:</label>
-        <input type="date" id="endDate" required>
-    </div>
-    <div class="form-group">
-        <label for="requiredTags">必須タグ (カンマ区切り):</label>
-        <input type="text" id="requiredTags" placeholder="tag1, tag2, tag3">
-    </div>
-    <button id="startButton">実行</button>
-    <div id="message"></div>
+
+    <script>
+        // ログ出力機能
+        document.addEventListener('DOMContentLoaded', function() {
+            // ログクリアボタンのイベントリスナー
+            document.getElementById('clearLogButton').addEventListener('click', function() {
+                document.getElementById('log-content').innerHTML = '';
+            });
+        });
+    </script>
 </body>
 </html>
