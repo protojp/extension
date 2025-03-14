@@ -75,11 +75,11 @@ eagle.onPluginCreate(async(plugin) => {
 			}
 
 			// モザイクモデルをカンマ区切りで作成
-			if (additionalModels.length) mosaicModel += ',' + Array.from(additionalModels).join(',');
+			mosaicModel += ',' + Array.from(additionalModels).join(',');
 
 			console.log(`使用するモザイクモデル: ${mosaicModel}`);
 
-			const args = [scriptPath, '-ssd', '-c', '0.35', '-s', '12', '-m', mosaicModel, filePath];
+			const args = [scriptPath, '-ssd', '-c', '0.25', '-s', '12', '-m', mosaicModel, filePath];
 			//'-sp',プレビュー画像を保存する。ADetailerとかでよく見る、枠と点数がついてる画像を出力する
 
 			try {
