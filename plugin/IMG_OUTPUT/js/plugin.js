@@ -742,6 +742,9 @@ eagle.onPluginCreate(async(plugin) =>
             const button = document.getElementById('startButton');
             button.disabled = true; // ボタンを無効化
             try {
+                // 設定を初期化
+                await ConfigManager.loadConfig();
+
                 // 入力値を取得
                 ImageProcessor.startDate = new Date(document.getElementById('startDate').value);
                 ImageProcessor.endDate = new Date(document.getElementById('endDate').value);
