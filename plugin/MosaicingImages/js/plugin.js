@@ -14,11 +14,12 @@ eagle.onPluginCreate(async(plugin) => {
 
 	const replaceImage = true;//画像をモザイク画像で置き換えるかフラグ
 
-	const baseMosaicModel = "AnimePussy_best-5.pt";//"AnimePussy_best-5.pt";
+	//:0.25はしきい値
+	const baseMosaicModel = "ntd11_anime_nsfw_segm_v1_all.pt:0.15";//pussyV2:0.25,
 	const mosaicModelsTargetTag = 
 	{
-		"1boy":"penis.pt"
-		,"male pov":"penis.pt"
+		"1boy":"penis.pt:0.75"
+		,"male pov":"penis.pt:0.75"
 		// // ,"1girl":"AnimePussy_best-5.pt"
 	};
 
@@ -79,7 +80,7 @@ eagle.onPluginCreate(async(plugin) => {
 
 			console.log(`使用するモザイクモデル: ${mosaicModel}`);
 
-			const args = [scriptPath, '-ssd', '-c', '0.25', '-s', '12', '-m', mosaicModel, filePath];
+			const args = [scriptPath, filePath, '-ssd', '-s', '12', '-m', mosaicModel];
 			//'-sp',プレビュー画像を保存する。ADetailerとかでよく見る、枠と点数がついてる画像を出力する
 
 			try {
