@@ -709,6 +709,31 @@ eagle.onPluginCreate(async(plugin) => {
             return activeTerms;
         },
 
+        // 現在のUIの値を取得
+        getCurrentTermValues() {
+            const rows = document.querySelectorAll('#outputTermsTableBody tr');
+            const currentValues = [];
+            
+            rows.forEach((row, index) => {
+                const inputs = row.querySelectorAll('input');
+                if (inputs.length >= 5 && ConfigManager.outputImageTerms[index]) {
+                    const term = {...ConfigManager.outputImageTerms[index]};
+                    // maxImagesを更新
+                    term.maxImages = parseInt(inputs[2].value) || term.maxImages;
+                    // ratingsを更新
+                    term.ratings = inputs[3].value.split(',').map(r => parseInt(r.trim())).filter(r => !isNaN(r));
+                    // requiredTagsを更新
+                    term.requiredTags = inputs[4].value.split(',').map(t => t.trim()).filter(t => t);
+                    // notTagsを更新
+                    term.notTags = inputs[5].value.split(',').map(t => t.trim()).filter(t => t);
+                    
+                    currentValues.push(term);
+                }
+            });
+            
+            return currentValues;
+        },
+
         // デフォルト値を設定
         setDefaultDates() {
             const today = new Date();
@@ -825,8 +850,14 @@ eagle.onPluginCreate(async(plugin) => {
                     const addRequiredTags = tagsInput.split(',').map(tag => tag.trim()).filter(tag => tag !== '');
                     ConfigManager.addRequiredTagsToTerms(addRequiredTags);
 
-                    // 有効な出力条件を設定
-                    ConfigManager.outputImageTerms = activeTerms;
+                    // UIの現在の値を取得して設定
+                    const activeTerms = this.getActiveOutputTerms();
+                    const currentValues = this.getCurrentTermValues();
+                    
+                    // 有効な条件のみで、かつUIの最新値で更新
+                    ConfigManager.outputImageTerms = currentValues.filter((_, index) => 
+                        activeTerms.some(t => t.suffix === ConfigManager.outputImageTerms[index].suffix)
+                    );
 
                     // 入力値の検証
                     if (!ImageProcessor.startDate || !ImageProcessor.endDate) {
