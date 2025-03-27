@@ -10,13 +10,22 @@ const Logger = {
     // ログをHTMLに追加
     log(message, level = 'info') {
         // コンソールにも出力
-        console.log(message);
+        console.log(`[Logger] ${level}: ${message}`);
         
-        // DOMが読み込まれているか確認
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', () => this.appendLogToHTML(message, level));
-        } else {
-            this.appendLogToHTML(message, level);
+        try {
+            // DOMが読み込まれているか確認
+            if (document.readyState === 'loading') {
+                console.log('[Logger] DOMが読み込み中 - イベントリスナーを追加');
+                document.addEventListener('DOMContentLoaded', () => {
+                    console.log('[Logger] DOMContentLoadedイベント発火 - ログを追加');
+                    this.appendLogToHTML(message, level);
+                });
+            } else {
+                console.log('[Logger] DOMが読み込み済み - 直接ログを追加');
+                this.appendLogToHTML(message, level);
+            }
+        } catch (error) {
+            console.error('[Logger] ログ追加中にエラー:', error);
         }
     },
     
@@ -79,9 +88,8 @@ const Logger = {
     }
 };
 
-eagle.onPluginCreate(async(plugin) => 
-{
-
+// プラグイン初期化処理
+eagle.onPluginCreate(async(plugin) => {
     Logger.info("プラグインを初期化しています...");
 
     const fs = require('fs');
@@ -100,34 +108,41 @@ eagle.onPluginCreate(async(plugin) =>
         // 設定を読み込む
         async loadConfig() {
             try {
-                const configPath = path.join(__dirname, 'js', 'config.json');
+                const configPath = path.join(__dirname, 'js/config.json');
+                Logger.info(`設定ファイルの完全パス: ${path.resolve(configPath)}`);
+                Logger.info(`カレントディレクトリ: ${process.cwd()}`);
+                Logger.info(`__dirnameの値: ${__dirname}`);
+                
+                // ファイル存在チェック
+                const fileExists = fs.existsSync(configPath);
+                Logger.info(`ファイル存在状態: ${fileExists}`);
+                
+                if (!fileExists) {
+                    Logger.error(`設定ファイルが見つかりません: ${configPath}`);
+                    return false;
+                }
+                
+                // ファイルアクセス権チェック
+                try {
+                    fs.accessSync(configPath, fs.constants.R_OK);
+                    Logger.info(`ファイル読み込み権限があります`);
+                } catch (err) {
+                    Logger.error(`ファイル読み込み権限がありません: ${err.message}`);
+                    return false;
+                }
+                
                 const configData = fs.readFileSync(configPath, 'utf8');
+                Logger.info(`設定ファイルの内容: ${configData.length} bytes (最初の50文字: ${configData.substring(0, 50)}...)`);
+                
                 this.config = JSON.parse(configData);
                 this.outputImageTerms = this.config.outputImageTerms;
                 this.settings = this.config.defaultSettings;
                 
-                // 設定が正常に読み込まれたことをログに出力
-                Logger.info("設定ファイルを読み込みました");
+                Logger.info(`設定ファイルを正常に読み込みました。${this.outputImageTerms.length}個の出力条件を読み込み`);
                 return true;
             } catch (error) {
                 Logger.error(`設定ファイルの読み込みに失敗しました: ${error.message}`);
-                return false;
-            }
-        },
-
-        // 設定を保存する
-        saveConfig() {
-            try {
-                const configPath = path.join(__dirname, 'js', 'config.json');
-                const configData = JSON.stringify({
-                    outputImageTerms: this.outputImageTerms,
-                    defaultSettings: this.settings
-                }, null, 2);
-                fs.writeFileSync(configPath, configData, 'utf8');
-                Logger.info("設定ファイルを保存しました");
-                return true;
-            } catch (error) {
-                Logger.error(`設定ファイルの保存に失敗しました: ${error.message}`);
+                Logger.error(`スタックトレース: ${error.stack}`);
                 return false;
             }
         },
@@ -141,7 +156,9 @@ eagle.onPluginCreate(async(plugin) =>
             
             // 各要素のrequiredTagsに新しいタグを追加
             this.outputImageTerms.forEach(term => {
-                term.requiredTags.push(...tagsToAdd);
+                if (!term.requiredTags.includes(...tagsToAdd)) {
+                    term.requiredTags.push(...tagsToAdd);
+                }
             });
             
             this.addRequiredTags = tagsToAdd;
@@ -623,13 +640,13 @@ eagle.onPluginCreate(async(plugin) =>
         },
 
         // アーカイブを完了
-        async finalizeArchive(archive, output, closePromise, tiledImagePath, metadata, outputFolder, dateString, tempFiles, jsonLevel) {
+        async finalizeArchive(archive, output, closePromise, tiledImagePath, metadata, outputFolder, dateString, tempFiles, suffix) {
             archive.file(tiledImagePath, { name: path.basename(tiledImagePath) });
 
             await archive.finalize();
             await closePromise;
 
-            const metadataPath = await this.saveMetadata(metadata, outputFolder, dateString, jsonLevel);
+            const metadataPath = await this.saveMetadata(metadata, outputFolder, dateString, suffix);
             await this.runPythonScript(metadataPath);
 
             Logger.info(`ZIPファイルが正常に保存されました: ${output.path}`);
@@ -639,8 +656,8 @@ eagle.onPluginCreate(async(plugin) =>
         },
 
         // メタデータを保存
-        saveMetadata(metadata, outputFolder, dateString, jsonLevel) {
-            const metadataPath = this.generateUniqueFilePath(outputFolder, dateString, jsonLevel, 'json');
+        saveMetadata(metadata, outputFolder, dateString, suffix) {
+            const metadataPath = this.generateUniqueFilePath(outputFolder, dateString, suffix, 'json');
         
             fs.writeFileSync(metadataPath, JSON.stringify(metadata, null, 2));
             Logger.info(`メタデータJSONファイルが保存されました: ${metadataPath}`);
@@ -678,6 +695,20 @@ eagle.onPluginCreate(async(plugin) =>
 
     // UIコントローラー
     const UIController = {
+        // 有効な出力条件を取得
+        getActiveOutputTerms() {
+            const activeTerms = [];
+            const checkboxes = document.querySelectorAll('#outputTermsTableBody input[type="checkbox"]');
+            
+            checkboxes.forEach((checkbox, index) => {
+                if (checkbox.checked && ConfigManager.outputImageTerms[index]) {
+                    activeTerms.push(ConfigManager.outputImageTerms[index]);
+                }
+            });
+
+            return activeTerms;
+        },
+
         // デフォルト値を設定
         setDefaultDates() {
             const today = new Date();
@@ -693,10 +724,136 @@ eagle.onPluginCreate(async(plugin) =>
             document.getElementById('startDate').value = formatDate(oneWeekAgo);
         },
 
+        // outputImageTermsのリストを動的に生成
+        populateOutputTermsTable() {
+            const tableBody = document.getElementById('outputTermsTableBody');
+            const selectAllCheckbox = document.getElementById('selectAllCheckbox');
+            
+            // テーブルをクリア
+            tableBody.innerHTML = '';
+
+            // config.jsonからoutputImageTermsを取得
+            const outputTerms = ConfigManager.config.outputImageTerms;
+
+            // 各項目に対してテーブル行を生成
+            outputTerms.forEach((term, index) => {
+                const row = document.createElement('tr');
+                
+                // チェックボックス列
+                const checkboxCell = document.createElement('td');
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.checked = true; // デフォルトで全てチェック
+                checkbox.id = `term-checkbox-${index}`;
+                checkboxCell.appendChild(checkbox);
+                row.appendChild(checkboxCell);
+
+                // Suffix列
+                const suffixCell = document.createElement('td');
+                const suffixInput = document.createElement('input');
+                suffixInput.type = 'text';
+                suffixInput.value = term.suffix;
+                suffixInput.readOnly = true;
+                suffixCell.appendChild(suffixInput);
+                row.appendChild(suffixCell);
+
+                // Images列
+                const imagesCell = document.createElement('td');
+                const imagesInput = document.createElement('input');
+                imagesInput.type = 'number';
+                imagesInput.value = term.maxImages;
+                imagesInput.min = '1';
+                imagesCell.appendChild(imagesInput);
+                row.appendChild(imagesCell);
+
+                // Ratings列
+                const ratingsCell = document.createElement('td');
+                const ratingsInput = document.createElement('input');
+                ratingsInput.type = 'text';
+                ratingsInput.value = term.ratings.join(',');
+                ratingsCell.appendChild(ratingsInput);
+                row.appendChild(ratingsCell);
+
+                // Tags列
+                const tagsCell = document.createElement('td');
+                const tagsInput = document.createElement('input');
+                tagsInput.type = 'text';
+                tagsInput.value = term.requiredTags.join(',');
+                tagsCell.appendChild(tagsInput);
+                row.appendChild(tagsCell);
+
+                // NotTags列
+                const notTagsCell = document.createElement('td');
+                const notTagsInput = document.createElement('input');
+                notTagsInput.type = 'text';
+                notTagsInput.value = term.notTags.join(',');
+                notTagsCell.appendChild(notTagsInput);
+                row.appendChild(notTagsCell);
+
+                tableBody.appendChild(row);
+            });
+
+            // 全選択チェックボックスのイベントリスナー
+            selectAllCheckbox.addEventListener('change', (e) => {
+                const checkboxes = tableBody.querySelectorAll('input[type="checkbox"]');
+                checkboxes.forEach(cb => cb.checked = e.target.checked);
+            });
+        },
+
         // イベントハンドラを設定
         setupEventHandlers() {
             // 実行ボタンのイベントハンドラ
-            document.getElementById('startButton').addEventListener('click', this.startProcess);
+            document.getElementById('startButton').addEventListener('click', async () => {
+                const activeTerms = this.getActiveOutputTerms();
+                if (activeTerms.length === 0) {
+                    document.getElementById('message').textContent = '少なくとも1つの出力条件を選択してください';
+                    return;
+                }
+                const button = document.getElementById('startButton');
+                button.disabled = true; // ボタンを無効化
+
+                try {
+                    // 設定を初期化
+                    await ConfigManager.loadConfig();
+
+                    // 入力値を取得
+                    ImageProcessor.startDate = new Date(document.getElementById('startDate').value);
+                    ImageProcessor.endDate = new Date(document.getElementById('endDate').value);
+                    
+                    // タグを配列に変換（カンマで区切って、空白を削除）
+                    const tagsInput = document.getElementById('requiredTags').value;
+                    const addRequiredTags = tagsInput.split(',').map(tag => tag.trim()).filter(tag => tag !== '');
+                    ConfigManager.addRequiredTagsToTerms(addRequiredTags);
+
+                    // 有効な出力条件を設定
+                    ConfigManager.outputImageTerms = activeTerms;
+
+                    // 入力値の検証
+                    if (!ImageProcessor.startDate || !ImageProcessor.endDate) {
+                        document.getElementById('message').textContent = '日付を入力してください';
+                        return;
+                    }
+
+                    if (ImageProcessor.startDate > ImageProcessor.endDate) {
+                        document.getElementById('message').textContent = '開始日は終了日より前である必要があります';
+                        return;
+                    }
+
+                    document.getElementById('message').textContent = '処理を開始しました...';
+                    Logger.clear(); // ログをクリア
+                    Logger.info('処理を開始しました...');
+                    
+                    await ImageProcessor.processImages();
+                    
+                    document.getElementById('message').textContent = '処理が完了しました！';
+                    Logger.info('処理が完了しました！');
+                } catch (error) {
+                    document.getElementById('message').textContent = 'エラーが発生しました: ' + error.message;
+                    Logger.error(`プログラムの実行中にエラーが発生しました: ${error.message}`);
+                } finally {
+                    button.disabled = false; // 処理完了後にボタンを有効化
+                }
+            });
             
             // ペーストハンドラの設定
             const requiredTagsInput = document.getElementById('requiredTags');
@@ -735,86 +892,47 @@ eagle.onPluginCreate(async(plugin) =>
                     }
                 });
             }
-        },
 
-        // 処理を開始
-        async startProcess() {
-            const button = document.getElementById('startButton');
-            button.disabled = true; // ボタンを無効化
-            try {
-                // 設定を初期化
-                await ConfigManager.loadConfig();
-
-                // 入力値を取得
-                ImageProcessor.startDate = new Date(document.getElementById('startDate').value);
-                ImageProcessor.endDate = new Date(document.getElementById('endDate').value);
-                
-                // タグを配列に変換（カンマで区切って、空白を削除）
-                const tagsInput = document.getElementById('requiredTags').value;
-                const addRequiredTags = tagsInput.split(',').map(tag => tag.trim()).filter(tag => tag !== '');
-                ConfigManager.addRequiredTagsToTerms(addRequiredTags);
-
-                // 入力値の検証
-                if (!ImageProcessor.startDate || !ImageProcessor.endDate) {
-                    document.getElementById('message').textContent = '日付を入力してください';
-                    return;
-                }
-
-                if (ImageProcessor.startDate > ImageProcessor.endDate) {
-                    document.getElementById('message').textContent = '開始日は終了日より前である必要があります';
-                    return;
-                }
-
-                document.getElementById('message').textContent = '処理を開始しました...';
-                Logger.clear(); // ログをクリア
-                Logger.info('処理を開始しました...');
-                
-                await ImageProcessor.processImages();
-                
-                document.getElementById('message').textContent = '処理が完了しました！';
-                Logger.info('処理が完了しました！');
-            } catch (error) {
-                document.getElementById('message').textContent = 'エラーが発生しました: ' + error.message;
-                Logger.error(`プログラムの実行中にエラーが発生しました: ${error.message}`);
-            } finally {
-                button.disabled = false; // 処理完了後にボタンを有効化
-            }
+            // ログクリアボタンのイベントリスナー
+            document.getElementById('clearLogButton').addEventListener('click', function() {
+                document.getElementById('log-content').innerHTML = '';
+            });
         }
     };
 
-    // 初期化処理
-    async function initialize() {
+    // UIの初期化
+    console.log("UI初期化開始 - DOMContentLoadedリスナー登録前");
+    console.log("現在のdocument.readyState:", document.readyState);
+    Logger.info("DOMContentLoadedイベントリスナーを登録します");
+    
+    const initializeUI = async () => {
         try {
-            // 設定を読み込む
-            await ConfigManager.loadConfig();
+            // 設定ファイルを読み込み
+            const loaded = await ConfigManager.loadConfig();
+            if (!loaded) {
+                Logger.error("設定ファイルの読み込みに失敗しました");
+                return;
+            }
             
-            // UIの初期化
             UIController.setDefaultDates();
             UIController.setupEventHandlers();
-            
-            Logger.info("プラグインの初期化が完了しました");
+            UIController.populateOutputTermsTable();
         } catch (error) {
             Logger.error(`初期化中にエラーが発生しました: ${error.message}`);
-            document.getElementById('message').textContent = '初期化エラー: ' + error.message;
         }
+    };
+
+    if (document.readyState === 'loading') {
+        console.log("DOMがまだ読み込み中 - イベントリスナーを追加");
+        document.addEventListener('DOMContentLoaded', async () => {
+            console.log("DOMContentLoadedイベントが発火しました");
+            Logger.info("DOMContentLoadedイベントが発火しました");
+            await initializeUI();
+        });
+    } else {
+        console.log("DOMはすでに読み込み済み - 直接初期化を実行");
+        await initializeUI();
     }
 
-    // 初期化を実行
-    initialize();
-});
-
-eagle.onPluginRun(async () => {
-	Logger.info('プラグインが実行されました');
-});
-
-eagle.onPluginShow(() => {
-	Logger.info('プラグインが表示されました');
-});
-
-eagle.onPluginHide(() => {
-	Logger.info('プラグインが非表示になりました');
-});
-
-eagle.onPluginBeforeExit((event) => {
-	Logger.info('プラグインが終了します');
+    Logger.info("プラグインの初期化が完了しました");
 });
