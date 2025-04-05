@@ -12,5 +12,6 @@
   },
   "pythonPath": "D:\\ai\\automosaic_2024-08-17\\venv\\Scripts\\python.exe",
   "scriptPath": "D:\\ai\\automosaic_2024-08-17\\automosaic.py",
-  "mosaicStrength": 12
+  "mosaicStrength": 12,
+  "restoreFolderName":"RestoreOriginal"
 }
