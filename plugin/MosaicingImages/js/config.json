@@ -1,0 +1,16 @@
+{
+  "targetFolderName": "1stOutputWebUI",
+  "addTag": "MosaicedIMG",
+  "targetTags": ["nsfw", "nude"],
+  "tagFilter": true,
+  "replaceImage": true,
+  "baseMosaicModel": "ntd11_anime_nsfw_segm_v1_all.pt:0.2",
+  "mosaicModelsTargetTag": {
+    "1boy": "penis.pt:0.7",
+    "male pov": "penis.pt:0.7",
+    "1girl": "atla_pussy_best.pt:0.2"
+  },
+  "pythonPath": "D:\\ai\\automosaic_2024-08-17\\venv\\Scripts\\python.exe",
+  "scriptPath": "D:\\ai\\automosaic_2024-08-17\\automosaic.py",
+  "mosaicStrength": 12
+}
