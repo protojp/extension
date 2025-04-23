@@ -52,18 +52,10 @@ const Logger = {
         
         logContent.appendChild(logEntry);
         
-        // 自動スクロール - 非同期で実行して確実にDOMの更新後に実行されるようにする
-        setTimeout(() => {
-            this.scrollToBottom(logContent);
-        }, 0);
+        // 自動スクロール
+        document.querySelector("#log-content").scrollIntoView(false);
     },
-    
-    // ログエリアを一番下までスクロール
-    scrollToBottom(element) {
-        if (!element) return;
-        element.scrollTop = element.scrollHeight;
-    },
-    
+
     // 情報ログ
     info(message) {
         this.log(message, this.levels.INFO);
@@ -108,13 +100,13 @@ eagle.onPluginCreate(async(plugin) => {
         async loadConfig() {
             try {
                 const configPath = path.join(__dirname, 'js/config.json');
-                Logger.info(`設定ファイルの完全パス: ${path.resolve(configPath)}`);
-                Logger.info(`カレントディレクトリ: ${process.cwd()}`);
-                Logger.info(`__dirnameの値: ${__dirname}`);
+                // Logger.info(`設定ファイルの完全パス: ${path.resolve(configPath)}`);
+                // Logger.info(`カレントディレクトリ: ${process.cwd()}`);
+                // Logger.info(`__dirnameの値: ${__dirname}`);
                 
                 // ファイル存在チェック
                 const fileExists = fs.existsSync(configPath);
-                Logger.info(`ファイル存在状態: ${fileExists}`);
+                // Logger.info(`ファイル存在状態: ${fileExists}`);
                 
                 if (!fileExists) {
                     Logger.error(`設定ファイルが見つかりません: ${configPath}`);
@@ -124,14 +116,14 @@ eagle.onPluginCreate(async(plugin) => {
                 // ファイルアクセス権チェック
                 try {
                     fs.accessSync(configPath, fs.constants.R_OK);
-                    Logger.info(`ファイル読み込み権限があります`);
+                    // Logger.info(`ファイル読み込み権限があります`);
                 } catch (err) {
                     Logger.error(`ファイル読み込み権限がありません: ${err.message}`);
                     return false;
                 }
                 
                 const configData = fs.readFileSync(configPath, 'utf8');
-                Logger.info(`設定ファイルの内容: ${configData.length} bytes (最初の50文字: ${configData.substring(0, 50)}...)`);
+                // Logger.info(`設定ファイルの内容: ${configData.length} bytes (最初の50文字: ${configData.substring(0, 50)}...)`);
                 
                 this.config = JSON.parse(configData);
                 this.outputImageTerms = this.config.outputImageTerms;
@@ -141,7 +133,7 @@ eagle.onPluginCreate(async(plugin) => {
                 return true;
             } catch (error) {
                 Logger.error(`設定ファイルの読み込みに失敗しました: ${error.message}`);
-                Logger.error(`スタックトレース: ${error.stack}`);
+                // Logger.error(`スタックトレース: ${error.stack}`);
                 return false;
             }
         }
@@ -613,8 +605,8 @@ eagle.onPluginCreate(async(plugin) => {
                     });
                 });
         
-                if (stdout) Logger.info(`Python出力: ${stdout}`);
-                if (stderr) Logger.error(`Pythonエラー: ${stderr}`);
+                // if (stdout) Logger.info(`Python出力: ${stdout}`);
+                // if (stderr) Logger.error(`Pythonエラー: ${stderr}`);
             } catch (error) {
                 Logger.error(`Pythonスクリプト実行エラー: ${error.message}`);
                 throw error;
@@ -653,7 +645,7 @@ eagle.onPluginCreate(async(plugin) => {
                     try {
                         if (fs.existsSync(tempFilePath)) {
                             fs.unlinkSync(tempFilePath);
-                            Logger.info(`一時ファイルを削除しました: ${tempFilePath}`);
+                            // Logger.info(`一時ファイルを削除しました: ${tempFilePath}`);
                         }
                     } catch (err) {
                         Logger.warning(`一時ファイルの削除に失敗しました: ${tempFilePath} - ${err.message}`);
@@ -911,7 +903,7 @@ eagle.onPluginCreate(async(plugin) => {
     // UIの初期化
     console.log("UI初期化開始 - DOMContentLoadedリスナー登録前");
     console.log("現在のdocument.readyState:", document.readyState);
-    Logger.info("DOMContentLoadedイベントリスナーを登録します");
+    // Logger.info("DOMContentLoadedイベントリスナーを登録します");
     
     const initializeUI = async () => {
         try {
@@ -933,8 +925,8 @@ eagle.onPluginCreate(async(plugin) => {
     if (document.readyState === 'loading') {
         console.log("DOMがまだ読み込み中 - イベントリスナーを追加");
         document.addEventListener('DOMContentLoaded', async () => {
-            console.log("DOMContentLoadedイベントが発火しました");
-            Logger.info("DOMContentLoadedイベントが発火しました");
+            // console.log("DOMContentLoadedイベントが発火しました");
+            // Logger.info("DOMContentLoadedイベントが発火しました");
             await initializeUI();
         });
     } else {
