@@ -46,7 +46,7 @@
   "defaultSettings": {
     "output1stFolderName": "1stOutputWebUI",
     "baseOutputFolder": "E:\\SD_IMGS\\Discord",
-    "tileSize": 500,
+    "tileSize": 100,
     "dateRange": 1,
     "pythonPath": "C:\\github\\protojp\\sns\\myvenv\\Scripts\\python.exe",
     "updateTagsPy": "C:\\github\\protojp\\sns\\upload\\update_json_tags.py",
