@@ -103,7 +103,6 @@ eagle.onPluginCreate(async(plugin) => {
         config: null,
         settings: null,
         outputImageTerms: null,
-        addRequiredTags: [],
 
         // 設定を読み込む
         async loadConfig() {
@@ -145,23 +144,6 @@ eagle.onPluginCreate(async(plugin) => {
                 Logger.error(`スタックトレース: ${error.stack}`);
                 return false;
             }
-        },
-
-        // 必須タグを追加
-        addRequiredTagsToTerms(tagsToAdd) {
-            // tagsToAddが空配列または未定義の場合は何もしない
-            if (!tagsToAdd || tagsToAdd.length === 0) {
-                return;
-            }
-            
-            // 各要素のrequiredTagsに新しいタグを追加
-            this.outputImageTerms.forEach(term => {
-                if (!term.requiredTags.includes(...tagsToAdd)) {
-                    term.requiredTags.push(...tagsToAdd);
-                }
-            });
-            
-            this.addRequiredTags = tagsToAdd;
         }
     };
 
@@ -172,7 +154,7 @@ eagle.onPluginCreate(async(plugin) => {
         processedSeeds: new Set(),
 
         // 画像処理のメイン関数
-        async processImages() {
+        async processImages(termsToProcess, addRequiredTags) { // 引数を追加
             try {
                 Logger.info("画像の取得を開始します...");
                 const items = await eagle.item.get();
@@ -180,8 +162,8 @@ eagle.onPluginCreate(async(plugin) => {
 
                 this.processedSeeds.clear();
 
-                for (const term of ConfigManager.outputImageTerms) {
-                    const filteredItems = this.filterItems(items, term.ratings, term.requiredTags, term.notTags);
+                for (const term of termsToProcess) { // 引数を使用
+                    const filteredItems = this.filterItems(items, term.ratings, term.requiredTags, term.notTags, addRequiredTags); // addRequiredTagsを渡す
                     Logger.info(`${term.suffix}フィルタリング後のアイテム数: ${filteredItems.length}`);
 
                     if (filteredItems.length > 0) {
@@ -201,7 +183,7 @@ eagle.onPluginCreate(async(plugin) => {
         },
 
         // アイテムをフィルタリング
-        filterItems(items, targetRatings, requiredTags, notTags) {
+        filterItems(items, targetRatings, requiredTags, notTags, addRequiredTags) { // 引数を追加
             return items.filter(item => {
                 const itemDate = new Date(item.importedAt);
                 const seed = this.getSeedFromAnnotation(item.annotation);
@@ -212,8 +194,8 @@ eagle.onPluginCreate(async(plugin) => {
                 const hasRequiredTags = requiredTags.length === 0 || 
                     (item.tags && requiredTags.every(tag => item.tags.includes(tag)));
 
-                const hasAddRequiredTags = ConfigManager.addRequiredTags.length === 0 || 
-                    (item.tags && ConfigManager.addRequiredTags.every(tag => item.tags.includes(tag)));
+                const hasAddRequiredTags = addRequiredTags.length === 0 || // 引数を使用
+                    (item.tags && addRequiredTags.every(tag => item.tags.includes(tag))); // 引数を使用
 
                 const hasNotTags = notTags.length > 0 && 
                     (item.tags && notTags.some(tag => item.tags.includes(tag)));
@@ -829,38 +811,33 @@ eagle.onPluginCreate(async(plugin) => {
         setupEventHandlers() {
             // 実行ボタンのイベントハンドラ
             document.getElementById('startButton').addEventListener('click', async () => {
-                const activeTerms = this.getActiveOutputTerms();
-                if (activeTerms.length === 0) {
-                    document.getElementById('message').textContent = '少なくとも1つの出力条件を選択してください';
-                    return;
-                }
                 const button = document.getElementById('startButton');
                 button.disabled = true; // ボタンを無効化
 
                 try {
-                    // 設定を初期化
-                    await ConfigManager.loadConfig();
+                    // UIから現在の値を取得
+                    const currentValues = this.getCurrentTermValues();
+                    const activeCheckboxes = document.querySelectorAll('#outputTermsTableBody input[type="checkbox"]');
+                    
+                    // 処理対象の条件リストを作成
+                    const termsToProcess = currentValues.filter((_, index) => activeCheckboxes[index] && activeCheckboxes[index].checked);
+
+                    if (termsToProcess.length === 0) {
+                        document.getElementById('message').textContent = '少なくとも1つの出力条件を選択してください';
+                        button.disabled = false; // ボタンを有効化
+                        return;
+                    }
 
                     // 入力値を取得
                     ImageProcessor.startDate = new Date(document.getElementById('startDate').value);
                     ImageProcessor.endDate = new Date(document.getElementById('endDate').value);
-                    
                     // タグを配列に変換（カンマで区切って、空白を削除）
                     const tagsInput = document.getElementById('requiredTags').value;
                     const addRequiredTags = tagsInput.split(',').map(tag => tag.trim()).filter(tag => tag !== '');
-                    ConfigManager.addRequiredTagsToTerms(addRequiredTags);
-
-                    // UIの現在の値を取得して設定
-                    const activeTerms = this.getActiveOutputTerms();
-                    const currentValues = this.getCurrentTermValues();
-                    
-                    // 有効な条件のみで、かつUIの最新値で更新
-                    ConfigManager.outputImageTerms = currentValues.filter((_, index) => 
-                        activeTerms.some(t => t.suffix === ConfigManager.outputImageTerms[index].suffix)
-                    );
+                    // ConfigManager.addRequiredTagsToTerms(addRequiredTags); // 削除
 
                     // 入力値の検証
-                    if (!ImageProcessor.startDate || !ImageProcessor.endDate) {
+                    if (!ImageProcessor.startDate || !ImageProcessor.endDate || isNaN(ImageProcessor.startDate) || isNaN(ImageProcessor.endDate)) {
                         document.getElementById('message').textContent = '日付を入力してください';
                         return;
                     }
@@ -874,7 +851,7 @@ eagle.onPluginCreate(async(plugin) => {
                     Logger.clear(); // ログをクリア
                     Logger.info('処理を開始しました...');
                     
-                    await ImageProcessor.processImages();
+                    await ImageProcessor.processImages(termsToProcess, addRequiredTags); // 引数を渡す
                     
                     document.getElementById('message').textContent = '処理が完了しました！';
                     Logger.info('処理が完了しました！');
