@@ -6,11 +6,11 @@
   "replaceImage": true,
   "baseMosaicModel": "ntd11_anime_nsfw_segm_v3_all.pt:0.2",
   "mosaicModelsTargetTag": {
-        "1boy":     "penis.pt:0.7"
-    ,   "male pov": "penis.pt:0.7"
+        "1boy":     "AnimePussyCameltoePenis-best2.pt:0.2"
+    ,   "male pov": "AnimePussyCameltoePenis-best2.pt:0.2"
   },
   "pythonPath": "D:\\ai\\automosaic_2024-08-17\\venv\\Scripts\\python.exe",
   "scriptPath": "D:\\ai\\automosaic_2024-08-17\\automosaic.py",
-  "mosaicStrength": 12,
+  "mosaicStrength": 20,
   "restoreFolderName":"RestoreOriginal"
 }
