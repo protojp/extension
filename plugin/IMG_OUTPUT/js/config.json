@@ -33,12 +33,12 @@
       "ratings": [3, 2, 1],
       "maxImages": 25,
       "requiredTags": [],
-      "notTags": ["nsfw"]
+      "notTags": ["sex"]
     },
     {
       "suffix": "Lv1",
       "ratings": [2, 1],
-      "maxImages": 4,
+      "maxImages": 3,
       "requiredTags": [],
       "notTags": ["nsfw"]
     }

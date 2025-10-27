@@ -1,10 +1,10 @@
 {
   "targetFolderName": "1stOutputWebUI",
   "addTag": "MosaicedIMG",
-  "targetTags": ["nsfw", "nude"],
+  "targetTags": ["nsfw"],
   "tagFilter": true,
   "replaceImage": true,
-  "baseMosaicModel": "ntd11_anime_nsfw_segm_v3_all.pt:0.2",
+  "baseMosaicModel": "ntd11_anime_nsfw_segm_v4_all.pt:0.2",
   "mosaicModelsTargetTag": {
         "1boy":     "AnimePussyCameltoePenis-best2.pt:0.2"
     ,   "male pov": "AnimePussyCameltoePenis-best2.pt:0.2"

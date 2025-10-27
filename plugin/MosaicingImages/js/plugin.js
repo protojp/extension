@@ -304,6 +304,8 @@ eagle.onPluginShow(async () => {
 		console.error("UI要素 'target-folder-input' がHTML内に見つかりません。");
 	}
 
+	//★★★タグ検索がand条件なので、or条件に変更する必要がある★★★
+	//→ 上記がベストなのだが、改修が面倒なのでnsfwタグを付けることで対応
 	if (targetTagsInput) {
 		// configオブジェクトからタグ配列を取得し、カンマ+スペース区切りの文字列に変換して設定
 		// config.targetTags が存在しないか空配列の場合は空文字になる
