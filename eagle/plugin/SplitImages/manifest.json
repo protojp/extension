@@ -6,7 +6,7 @@
     "name": "SplitImages",
     "logo": "/logo.png",
     "keywords": [],
-    "devTools": true,
+    "devTools": false,
     "main": {
         "url": "index.html",
         "width": 640,

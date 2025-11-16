@@ -122,7 +122,18 @@ const run = async () => {
       return
     }
 
-    await splitAndAdd(selected[0])
+    let success = 0
+    let failed = 0
+    for (const item of selected) {
+      try {
+        await splitAndAdd(item)
+        success += 1
+      } catch (err) {
+        failed += 1
+        console.error('[SplitImages] 分割に失敗しました', err, { item })
+      }
+    }
+    log(`処理完了: 成功 ${success} 件 / 失敗 ${failed} 件`)
   } catch (error) {
     console.error('[SplitImages] 分割に失敗しました', error)
   } finally {
