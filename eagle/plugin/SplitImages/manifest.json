@@ -1,16 +1,15 @@
 {
-    "id": "2a87e3f0-a6de-42ca-b9ca-88ed64659594",
+    "id": "e0998e7a-2f79-43a4-97f0-add45c04d02d",
     "version": "1.0.0",
     "platform": "all",
     "arch": "all",
-    "name": "CHECK_NSFW_X",
+    "name": "SplitImages",
     "logo": "/logo.png",
     "keywords": [],
     "devTools": true,
     "main": {
-        "serviceMode": true,
         "url": "index.html",
-        "width": 1200,
-        "height": 800
+        "width": 640,
+        "height": 480
     }
 }
