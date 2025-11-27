@@ -146,9 +146,14 @@ const run = async () => {
   }
 }
 
-eagle.onPluginCreate(() => {
+eagle.onPluginCreate(async () => {
   state.ready = true
   log('プラグイン初期化')
+  try {
+    await eagle.window.hide()
+  } catch (err) {
+    log('初期非表示に失敗しました', err)
+  }
 })
 
 eagle.onPluginRun(() => {
