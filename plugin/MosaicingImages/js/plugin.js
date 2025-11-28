@@ -31,7 +31,8 @@ async function loadConfig() {
 			mosaicModelsTargetTag: {}, // タグごとの追加モデル (空オブジェクト)
 			pythonPath: "", // Python実行ファイルのパス (要設定)
 			scriptPath: "", // automosaic.pyスクリプトのパス (要設定)
-			mosaicStrength: 12 // モザイク強度
+			mosaicStrength: 12, // Mosaic strength
+			preferredGpu: "" // GPU index to use (empty = default)
 		};
 		// isConfigLoaded は false のままにするか、エラー状態を示す別のフラグを立てても良い
 		eagle.log.error('config.json の読み込みに失敗しました。デフォルト設定を使用します。');
@@ -136,6 +137,7 @@ async function processSingleItem(item, currentConfig, uiTargetTags) {
 	const baseMosaicModel = currentConfig.baseMosaicModel;
 	const mosaicModelsTargetTag = currentConfig.mosaicModelsTargetTag;
 	const mosaicStrength = currentConfig.mosaicStrength;
+	const preferredGpu = currentConfig.preferredGpu;
 
 	// --- スキップ条件判定 ---
 	// 1. 画像サイズのチェック
@@ -176,11 +178,21 @@ async function processSingleItem(item, currentConfig, uiTargetTags) {
 	// --- Pythonスクリプト実行 ---
 	// スクリプトへの引数リストを作成
 	const args = [scriptPath, filePath, '-ssd', '-s', String(mosaicStrength), '-m', mosaicModel];
+	const execOptions = {
+		encoding: 'buffer',
+		cwd: path.dirname(scriptPath),
+		env: preferredGpu ? { ...process.env, CUDA_VISIBLE_DEVICES: String(preferredGpu) } : process.env
+	};
+
+	if (preferredGpu) {
+		console.log(`  preferredGpu is set (CUDA_VISIBLE_DEVICES=${preferredGpu})`);
+	}
+
 
 	try {
 		// execFileでPythonスクリプトを非同期実行し、完了を待つ
 		await new Promise((resolve, reject) => {
-			execFile(pythonPath, args, { encoding: 'buffer', cwd: path.dirname(scriptPath) }, (error, stdout, stderr) => {
+			execFile(pythonPath, args, execOptions, (error, stdout, stderr) => {
 				if (error) {
 					console.error(`  Pythonスクリプト実行エラー (${item.name}):`, error);
 					console.error(`  Stderr: ${stderr.toString()}`);
