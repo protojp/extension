@@ -163,6 +163,8 @@ eagle.onPluginRun(() => {
 
 eagle.onPluginShow(() => {
   log('onPluginShow')
+  // 表示されても即非表示にする
+  eagle.window.hide().catch(err => log('onPluginShow で非表示に失敗しました', err))
 })
 
 eagle.onPluginHide(() => {
