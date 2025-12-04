@@ -11,8 +11,8 @@
         "jpg,png": {
             "inspector": {
                 "path": "index.html",
-                "height": 100,
-                "multiSelect": false
+                "height": 160,
+                "multiSelect": true
             }
         }
     }
