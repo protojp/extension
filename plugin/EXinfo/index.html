@@ -167,32 +167,32 @@
             document.body.setAttribute('theme', theme)
         }
 
-        const getSingleSelectedItem = async () => {
-            const selected = await eagle.item.getSelected()
-            if (Array.isArray(selected)) {
-                return selected[0] || null
-            }
-            return selected || null
+        const getSelectedItems = async () => {
+            const items = await eagle.item.get({ isSelected: true, fields: ['tags'] })
+            if (!items) return []
+            return Array.isArray(items) ? items : [items]
         }
 
         const EXCLUDED_LORA_NAMES = ['Hyper-SDXL-8steps-lora']
 
         const extractLoraNames = (tags = []) => {
-            return tags
+            const names = tags
                 .map(tag => {
                     const match = tag.match(/<lora:([^:>]+)[^>]*>/i)
                     return match ? match[1] : null
                 })
                 .filter(name => name && !EXCLUDED_LORA_NAMES.includes(name))
+            return [...new Set(names)]
         }
 
         const extractCheckpointNames = (tags = []) => {
-            return tags
+            const names = tags
                 .map(tag => {
                     const match = tag.match(/^Model:\s*(.+)$/i)
                     return match ? match[1].trim() : null
                 })
                 .filter(Boolean)
+            return [...new Set(names)]
         }
 
         const renderValues = (el, values) => {
@@ -209,18 +209,29 @@
             })
         }
 
-        const updateInfo = async () => {
-            const item = await getSingleSelectedItem()
-            const tags = item?.tags || []
+        let lastRenderKey = ''
+
+        const updateInfo = async (force = false) => {
+            const items = await getSelectedItems()
+            const tags = items.flatMap(item => item?.tags || [])
             const loraNames = extractLoraNames(tags)
             const cpNames = extractCheckpointNames(tags)
+            const currentKey = `${loraNames.join('|')}__${cpNames.join('|')}`
+            if (!force && currentKey === lastRenderKey) {
+                return currentKey
+            }
             renderValues(loraEl, loraNames)
             renderValues(cpEl, cpNames)
+            lastRenderKey = currentKey
+            return currentKey
         }
 
         const init = async () => {
             await setTheme()
-            await updateInfo()
+            await updateInfo(true)
+            setTimeout(() => {
+                updateInfo()
+            }, 1000)
         }
 
         eagle.onPluginCreate(async () => {
