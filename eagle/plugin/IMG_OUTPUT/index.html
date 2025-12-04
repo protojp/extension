@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+    <script type="text/javascript" src="js/plugin.js"></script>
+    <style>
+        body {
+            color: #ccc;
+            padding: 0;
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background-color: #222;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            box-sizing: border-box;
+        }
+        
+        .container {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+        
+        .left-panel {
+            flex: 2;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        
+        .input-section {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        
+        .input-section > div {
+            flex: 1;
+        }
+        
+        .input-section input {
+            width: 100%;
+            background: #333;
+            border: 1px solid #555;
+            color: #fff;
+            padding: 5px 10px;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        
+        .terms-table {
+            flex: 1;
+            overflow-y: auto;
+            border: 1px solid #555;
+            margin-top: 10px;
+        }
+        
+        .terms-table table {
+            width: 100%;
+            border-collapse: collapse;
+            background-color: #333;
+        }
+        
+        .terms-table th, .terms-table td {
+            border: 1px solid #555;
+            padding: 2px;
+            text-align: left;
+            color: #ccc;
+            overflow: hidden;
+        }
+        
+        .terms-table th {
+            background-color: #444;
+            position: sticky;
+            top: 0;
+        }
+        
+        .terms-table input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            margin: 0;
+            cursor: pointer;
+        }
+
+        .terms-table input[type="text"],
+        .terms-table input[type="number"] {
+            width: 100%;
+            background: transparent;
+            border: none;
+            color: #ccc;
+            padding: 2px;
+            box-sizing: border-box;
+        }
+
+        .terms-table input[type="number"] {
+            /* width: 60px; */
+        }
+        
+        .terms-table input:focus {
+            outline: 1px solid #4CAF50;
+        }
+
+        .terms-table th:first-child,
+        .terms-table td:first-child {
+            width: 30px;
+            text-align: center;
+        }
+
+        .terms-table th:nth-child(2),
+        .terms-table td:nth-child(2) {
+            width: 80px;
+        }
+
+        .terms-table th:nth-child(3),
+        .terms-table td:nth-child(3),
+        .terms-table th:nth-child(4),
+        .terms-table td:nth-child(4){
+            width: 40px;
+        }
+        
+        .right-panel {
+            flex: 1;
+            background-color: #111;
+            border-left: 1px solid #333;
+            padding: 10px;
+            overflow-y: auto;
+        }
+        
+        .log-header {
+            font-size: 14px;
+            font-weight: bold;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #333;
+            margin-bottom: 10px;
+            color: #4CAF50;
+        }
+        
+        #log-content {
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            line-height: 1.4;
+            white-space: pre-wrap;
+            color: #ddd;
+        }
+        
+        .log-entry {
+            margin-bottom: 5px;
+            padding-bottom: 5px;
+            border-bottom: 1px dotted #333;
+        }
+        
+        .log-time {
+            color: #888;
+            font-size: 11px;
+        }
+        
+        .log-info {
+            color: #4CAF50;
+        }
+        
+        .log-warning {
+            color: #FFC107;
+        }
+        
+        .log-error {
+            color: #F44336;
+        }
+        
+        .bottom-section {
+            position: relative;
+            background-color: #333;
+            padding: 10px;
+            display: flex;
+            /* justify-content: center;
+            align-items: center; */
+            height: 60px;
+            box-sizing: border-box;
+        }
+        
+        #startButton {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            width: 200px;
+        }
+        
+        #startButton:hover {
+            background: #45a049;
+        }
+        
+        #startButton:disabled {
+            background: #888;
+            cursor: not-allowed;
+        }
+        
+        #message {
+            display: flex;
+            align-items:center;
+            color: #4CAF50;
+            margin-left: 10px;
+        }
+        
+        .clear-log-button {
+            background: #555;
+            font-size: 12px;
+            padding: 5px 10px;
+            border: none;
+            color: #ccc;
+            border-radius: 3px;
+            cursor: pointer;
+            margin-left: 10px;
+        }
+        
+        .clear-log-button:hover {
+            background: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 左側パネル：操作エリア -->
+        <div class="left-panel">
+            <div class="input-section">
+                <div>
+                    <label for="startDate">開始日:</label>
+                    <input type="date" id="startDate" required>
+                </div>
+                <div>
+                    <label for="endDate">終了日:</label>
+                    <input type="date" id="endDate" required>
+                </div>
+                <div>
+                    <label for="requiredTags">必須タグ:</label>
+                    <input type="text" id="requiredTags" placeholder="tag1, tag2, tag3">
+                </div>
+            </div>
+            
+            <div class="terms-table">
+                <table id="outputTermsTable">
+                    <thead>
+                        <tr>
+                            <th><input type="checkbox" id="selectAllCheckbox"></th>
+                            <th>Suffix</th>
+                            <th>🖼️</th>
+                            <th>⭐️</th>
+                            <th>🆗🏷️</th>
+                            <th>🆖🏷️</th>
+                        </tr>
+                    </thead>
+                    <tbody id="outputTermsTableBody">
+                        <!-- Terms will be dynamically populated here -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <!-- 右側パネル：ログ出力エリア -->
+        <div class="right-panel">
+            <div class="log-header">
+                実行ログ
+                <button class="clear-log-button" id="clearLogButton">クリア</button>
+            </div>
+            <div id="log-content"></div>
+        </div>
+    </div>
+
+    <div class="bottom-section">
+        <button id="startButton">実行</button>
+        <div id="message"></div>
+    </div>
+</body>
+</html>

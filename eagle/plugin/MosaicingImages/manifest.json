@@ -1,0 +1,15 @@
+{
+    "id": "73d7df6e-593d-4f25-8ced-a7323620748b",
+    "version": "1.0.0",
+    "platform": "all",
+    "arch": "all",
+    "name": "MosaicingImages",
+    "logo": "/logo.png",
+    "keywords": [],
+    "devTools": true,
+    "main": {
+        "url": "index.html",
+        "width": 400,
+        "height": 360
+    }
+}

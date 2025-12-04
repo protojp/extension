@@ -1,0 +1,17 @@
+{
+  "targetFolderName": "1stOutputWebUI",
+  "addTag": "MosaicedIMG",
+  "targetTags": ["nsfw"],
+  "tagFilter": true,
+  "replaceImage": true,
+  "baseMosaicModel": "ntd11_anime_nsfw_segm_v4_all.pt:0.2",
+  "mosaicModelsTargetTag": {
+        "1boy":     "AnimePussyCameltoePenis-best2.pt:0.2"
+    ,   "male pov": "AnimePussyCameltoePenis-best2.pt:0.2"
+  },
+  "pythonPath": "D:\\ai\\automosaic_2024-08-17\\venv\\Scripts\\python.exe",
+  "scriptPath": "D:\\ai\\automosaic_2024-08-17\\automosaic.py",
+  "mosaicStrength": 20,
+  "preferredGpu": "1",
+  "restoreFolderName":"RestoreOriginal"
+}
