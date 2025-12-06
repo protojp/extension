@@ -85,7 +85,7 @@
             background: #333;
         }
 
-        .buttons {
+        .control {
             display: flex;
             gap: 8px;
             margin: 10px 0;
@@ -148,15 +148,13 @@
             <span class="label">LoRA :</span>
             <span id="loraName" class="value">-</span>
         </div>
-        <!-- <div class="buttons">
-            <select id="selectSample">
-                <option value="">選択してください</option>
-                <option value="option1">サンプル1</option>
-                <option value="option2">サンプル2</option>
-                <option value="option3">サンプル3</option>
+        <div class="control">
+            <select id="selectID">
+                <option value="">ID選択</option>
+                <option value="option1" selected>Default</option>
             </select>
-            <button id="btnA">📤</button>
-        </div> -->
+            <button id="postX">📤</button>
+        </div>
     </div>
     <script>
         const loraEl = document.getElementById('loraName')
@@ -242,12 +240,12 @@
             document.body.setAttribute('theme', theme)
         })
 
-        document.getElementById('btnA').addEventListener('click', () => {
+        document.getElementById('postX').addEventListener('click', () => {
             alert('ボタン clicked')
             console.log('ボタン clicked')
         })
 
-        document.getElementById('selectSample').addEventListener('change', e => {
+        document.getElementById('selectID').addEventListener('change', e => {
             const value = e.target.value
             if (!value) return
             alert(`選択: ${value}`)
