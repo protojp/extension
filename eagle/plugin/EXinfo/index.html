@@ -108,15 +108,31 @@
         .status[data-type="warn"] {
             color: #f59e0b;
         }
+        select {
+            width: 60%;
+            padding: 2px;
+            margin: 1px;
+            border-radius: 6px;
+            border: 1px solid #333333;
+            background: #333333;
+            color: #eeeeee;
+            cursor: pointer;
+            /* flex: 1 1 auto; */
+            min-width: 0;
+        }
 
         button {
+            width: 30%;
             padding: 2px;
+            margin: 1px;
             border-radius: 6px;
             border: 1px solid #3b82f6;
             background: #3b82f6;
             color: #ffffff;
+            font-size: 1.1em;
+            line-height: 1.2em;
             cursor: pointer;
-            flex: 0 0 auto;
+            /* flex: 0 0 auto; */
         }
 
         body[theme="GRAY"] button,
@@ -132,23 +148,12 @@
             opacity: 0.8;
         }
 
-        select {
-            padding: 6px 8px;
-            border-radius: 6px;
-            border: 1px solid #94a3b8;
-            background: #ffffff;
-            color: #0f172a;
-            cursor: pointer;
-            flex: 1 1 auto;
-            min-width: 0;
-        }
-
         body[theme="GRAY"] select,
         body[theme="BLUE"] select,
         body[theme="PURPLE"] select,
         body[theme="DARK"] select {
-            background: #111827;
-            color: #e5e7eb;
+            background: #333333;
+            color: #eeeeee;
             border-color: #475569;
         }
     </style>
@@ -168,7 +173,7 @@
             <select id="selectID">
                 <option value="">IDを選択</option>
             </select>
-            <button id="postX" disabled>📤</button>
+            <button id="postX" disabled>📤投稿</button>
         </div>
         <div class="status" id="statusLine">auth.json を読み込み中...</div>
     </div>

@@ -24,6 +24,17 @@ const setStatus = (message, type = 'info') => {
   statusLine.dataset.type = type
 }
 
+const setControlsEnabled = enabled => {
+  if (postButton) {
+    postButton.disabled = !enabled
+    postButton.style.pointerEvents = enabled ? 'auto' : 'none'
+  }
+  if (accountSelect) {
+    accountSelect.disabled = !enabled
+    accountSelect.style.pointerEvents = enabled ? 'auto' : 'none'
+  }
+}
+
 const setTheme = async () => {
   const theme = await eagle.app.theme
   document.body.setAttribute('theme', theme)
@@ -114,23 +125,33 @@ const toLocalPath = value => {
   return value
 }
 
-const getSingleSelectedItem = async () => {
-  const items = await getSelectedItems(['id', 'name', 'ext', 'path', 'filePath', 'url', 'originPath', 'folderPath'])
-  if (!items.length) throw new Error('画像が選択されていません')
-  const item = items[0]
-  const query = new URLSearchParams(location.search)
-  const queryId = query.get('id') || ''
-  const queryPathRaw = query.get('path')
-  const queryPath = queryPathRaw ? decodeURIComponent(queryPathRaw) : ''
+const resolveItem = (item, queryPath, queryId) => {
   const resolvedPathRaw = item.path || item.filePath || item.originPath || item.url || queryPath
   const resolvedPath = toLocalPath(resolvedPathRaw)
-  if (!resolvedPath) throw new Error('画像パス/URLを取得できませんでした')
+  if (!resolvedPath) return null
   return {
-    id: item.id || queryId,
+    id: item.id || queryId || '',
     name: item.name,
     ext: item.ext,
     path: resolvedPath
   }
+}
+
+const getResolvedItems = async () => {
+  const items = await getSelectedItems(['id', 'name', 'ext', 'path', 'filePath', 'url', 'originPath', 'folderPath'])
+  const query = new URLSearchParams(location.search)
+  const queryId = query.get('id') || ''
+  const queryPathRaw = query.get('path')
+  const queryPath = queryPathRaw ? decodeURIComponent(queryPathRaw) : ''
+  return items
+    .map(item => resolveItem(item, queryPath, queryId))
+    .filter(Boolean)
+}
+
+const getSingleSelectedItem = async () => {
+  const resolved = await getResolvedItems()
+  if (!resolved.length) throw new Error('画像が選択されていません')
+  return resolved[0]
 }
 
 const renderAccounts = accounts => {
@@ -149,7 +170,7 @@ const renderAccounts = accounts => {
   const first = accounts[0]
   state.selectedId = first.id
   accountSelect.value = first.id
-  postButton.disabled = false
+  setControlsEnabled(true)
   setStatus(`投稿先: ${first.id}`)
 }
 
@@ -183,8 +204,7 @@ const buildPostText = item => {
   return JSON.stringify(payload)
 }
 
-const postViaCli = async textOverride => {
-  const item = await getSingleSelectedItem()
+const postViaCli = async (item, textOverride) => {
   const text = textOverride || buildPostText(item)
   const args = [POST_SCRIPT, '--image', item.path, '--text', text, '--skip-verify']
   return new Promise((resolve, reject) => {
@@ -209,6 +229,27 @@ const postViaCli = async textOverride => {
   })
 }
 
+const sleep = ms => new Promise(resolve => setTimeout(resolve, ms))
+
+const postMultiple = async items => {
+  const total = Math.min(items.length, 20)
+  setStatus(`連続投稿を開始します（${total}枚まで）...`)
+  for (let i = 0; i < total; i++) {
+    const item = items[i]
+    const idx = i + 1
+    setStatus(`連続投稿中：${idx}/${total} 投稿処理中...`)
+    const tweetUrl = await postViaCli(item)
+    const prefix = tweetUrl ? `完了:${tweetUrl.split("/").pop()}` : '完了（ID未取得）'
+    console.log(`[EXinfo] 連続投稿中：${idx}/${total} ${prefix}`)
+    setStatus(`連続📤:${idx}/${total} ${prefix}`)
+    if (i < total - 1) {
+      const wait = 20000 + Math.floor(Math.random() * (15000 - 5000 + 1)) + 5000
+      await sleep(wait)
+    }
+  }
+  setStatus(`連続投稿${total}枚完了`, 'success')
+}
+
 const init = async () => {
   accountSelect = document.getElementById('selectID')
   postButton = document.getElementById('postX')
@@ -222,7 +263,7 @@ const init = async () => {
     const accounts = await loadAccounts()
     renderAccounts(accounts)
   } catch (err) {
-    postButton.disabled = true
+    setControlsEnabled(false)
     setStatus(`auth.json 読み込み失敗: ${err.message}`, 'error')
   }
   setTimeout(() => {
@@ -235,7 +276,7 @@ const init = async () => {
 
   accountSelect.addEventListener('change', e => {
     state.selectedId = e.target.value
-    postButton.disabled = !state.selectedId || state.posting
+    setControlsEnabled(!state.posting && !!state.selectedId)
     if (!state.selectedId) {
       setStatus('投稿先IDを選択してください', 'warn')
     } else {
@@ -251,20 +292,32 @@ const init = async () => {
     }
     try {
       state.posting = true
-      postButton.disabled = true
-      setStatus('X に投稿中...')
-      const tweetUrl = await postViaCli()
-      if (tweetUrl) {
-        setStatus(`投稿完了: ${tweetUrl.split("/").pop()}`, 'success')
+      setControlsEnabled(false)
+      const items = await getResolvedItems()
+      if (!items.length) throw new Error('画像が選択されていません')
+      if (items.length === 1) {
+        setStatus('X に投稿中...')
+        const tweetUrl = await postViaCli(items[0])
+        if (tweetUrl) {
+          setStatus(`投稿完了: ${tweetUrl}`, 'success')
+        } else {
+          setStatus('投稿完了（ID未取得）', 'warn')
+        }
       } else {
-        setStatus('投稿完了（ID未取得）', 'warn')
+        const total = items.length > 20 ? 20 : items.length
+        const ok = window.confirm(`${total}枚の画像をポスト※最大20`)
+        if (!ok) {
+          setStatus('投稿をキャンセルしました', 'warn')
+        } else {
+          await postMultiple(items.slice(0, total))
+        }
       }
     } catch (err) {
       console.error('[EXinfo] post error:', err)
       setStatus(`投稿に失敗しました: ${err.message}`, 'error')
     } finally {
       state.posting = false
-      postButton.disabled = !state.selectedId
+      setControlsEnabled(!!state.selectedId)
     }
   })
 }
