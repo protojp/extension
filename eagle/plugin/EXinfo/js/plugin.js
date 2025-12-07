@@ -119,12 +119,18 @@ const getSingleSelectedItem = async () => {
   if (!items.length) throw new Error('画像が選択されていません')
   const item = items[0]
   const query = new URLSearchParams(location.search)
+  const queryId = query.get('id') || ''
   const queryPathRaw = query.get('path')
   const queryPath = queryPathRaw ? decodeURIComponent(queryPathRaw) : ''
   const resolvedPathRaw = item.path || item.filePath || item.originPath || item.url || queryPath
   const resolvedPath = toLocalPath(resolvedPathRaw)
   if (!resolvedPath) throw new Error('画像パス/URLを取得できませんでした')
-  return { ...item, path: resolvedPath }
+  return {
+    id: item.id || queryId,
+    name: item.name,
+    ext: item.ext,
+    path: resolvedPath
+  }
 }
 
 const renderAccounts = accounts => {
@@ -147,9 +153,39 @@ const renderAccounts = accounts => {
   setStatus(`投稿先: ${first.id}`)
 }
 
+const extractLibraryName = filePath => {
+  if (!filePath) return ''
+  const parts = filePath.split(path.sep)
+  const lib = parts.find(seg => seg.toLowerCase().endsWith('.library'))
+  return lib ? lib.replace(/\.library$/i, '') : ''
+}
+
+const extractSeed = filename => {
+  if (!filename) return null
+  const base = path.basename(filename)
+  const m1 = base.match(/_([0-9]{5,})[_\.]/)
+  if (m1) return m1[1]
+  const m2 = base.match(/-([0-9]{5,})[_\.]/)
+  if (m2) return m2[1]
+  return null
+}
+
+const buildPostText = item => {
+  const library = extractLibraryName(item.path)
+  const filename = path.basename(item.path || item.name || '')
+  const seed = extractSeed(filename)
+  const payload = {
+    seed: seed ? Number(seed) : null,
+    itemId: item.id || '',
+    library,
+    name: item.name || filename
+  }
+  return JSON.stringify(payload)
+}
+
 const postViaCli = async textOverride => {
   const item = await getSingleSelectedItem()
-  const text = textOverride || item.name || 'Shared from Eagle'
+  const text = textOverride || buildPostText(item)
   const args = [POST_SCRIPT, '--image', item.path, '--text', text, '--skip-verify']
   return new Promise((resolve, reject) => {
     execFile('node', args, { timeout: 120000 }, (error, stdout, stderr) => {
@@ -219,7 +255,7 @@ const init = async () => {
       setStatus('X に投稿中...')
       const tweetUrl = await postViaCli()
       if (tweetUrl) {
-        setStatus(`投稿完了: ${tweetUrl}`, 'success')
+        setStatus(`投稿完了: ${tweetUrl.split("/").pop()}`, 'success')
       } else {
         setStatus('投稿完了（ID未取得）', 'warn')
       }
