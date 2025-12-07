@@ -255,7 +255,7 @@ const buildPostText = item => {
 
 const postViaCliSingle = async item => {
   const text = buildPostText(item)
-  const args = [POST_SCRIPT, '--image', item.path, '--text', text]
+  const args = [POST_SCRIPT, '--image', item.path, '--text', text, '--account', state.selectedId]
   return new Promise((resolve, reject) => {
     execFile('node', args, { timeout: 120000 }, (error, stdout, stderr) => {
       if (stdout) console.log('[EXinfo] post stdout:', stdout)
@@ -288,12 +288,13 @@ const postViaCliList = async items => {
     waitJitterMinMs: 5000,
     waitJitterMaxMs: 15000,
     limit: total,
-    skipVerify: true
+    skipVerify: true,
+    accountId: state.selectedId
   }
   const tmpPath = path.join(os.tmpdir(), `exinfo_list_${Date.now()}.json`)
   await fs.promises.writeFile(tmpPath, JSON.stringify(payload), 'utf8')
   return new Promise((resolve, reject) => {
-    const proc = spawn('node', [POST_SCRIPT, '--list', tmpPath], { timeout: 180000 })
+    const proc = spawn('node', [POST_SCRIPT, '--list', tmpPath, '--account', state.selectedId], { timeout: 180000 })
     proc.stdout.on('data', data => {
       const text = data.toString()
       console.log('[EXinfo] post stdout:', text)
@@ -367,7 +368,7 @@ const init = async () => {
     if (s.state === 'running') {
       if (isStaleRunning(s)) {
         setControlsEnabled(true)
-        setStatus('連続投稿状態が更新されていません。操作を再開できます。', 'warn')
+        setStatus('投稿待機中', 'info')
         clearInterval(pollTimer)
       } else {
         setControlsEnabled(false)
@@ -375,8 +376,8 @@ const init = async () => {
       }
     } else {
       if (isStaleDone(s)) {
-        await writeStatus({ state: 'idle', message: '状態をリセットしました' })
-        setStatus('状態をリセットしました', 'info')
+        await writeStatus({ state: 'idle', message: '' })
+        setStatus('投稿待機中', 'info')
         setControlsEnabled(true)
         clearInterval(pollTimer)
         return
