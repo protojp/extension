@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="UTF-8">
-    <title>Inspector Plugin Example</title>
+    <title>EXinfo X Post</title>
     <style>
         html {
             font-size: 11px;
@@ -18,8 +18,6 @@
             color: transparent;
             background: transparent;
         }
-
-        /* colors for different themes */
 
         body[theme="LIGHT"],
         body[theme="LIGHTGRAY"] {
@@ -93,6 +91,24 @@
             width: 100%;
         }
 
+        .status {
+            font-size: 10px;
+            margin: 4px 0 0;
+            color: #94a3b8;
+        }
+
+        .status[data-type="error"] {
+            color: #ef4444;
+        }
+
+        .status[data-type="success"] {
+            color: #22c55e;
+        }
+
+        .status[data-type="warn"] {
+            color: #f59e0b;
+        }
+
         button {
             padding: 2px;
             border-radius: 6px;
@@ -150,23 +166,45 @@
         </div>
         <div class="control">
             <select id="selectID">
-                <option value="">ID選択</option>
-                <option value="option1" selected>Default</option>
+                <option value="">IDを選択</option>
             </select>
-            <button id="postX">📤</button>
+            <button id="postX" disabled>📤</button>
         </div>
+        <div class="status" id="statusLine">auth.json を読み込み中...</div>
     </div>
     <script>
+        const fs = require('fs')
+        const path = require('path')
+        const { execFile } = require('child_process')
+
+        const ACCOUNTS_PATH = 'C:\\github\\protojp\\sns\\accounts\\x\\auth.json'
+        const POST_SCRIPT = 'C:\\github\\protojp\\sns\\accounts\\x\\test-post.js'
+
+        const accountSelect = document.getElementById('selectID')
+        const postButton = document.getElementById('postX')
+        const statusLine = document.getElementById('statusLine')
         const loraEl = document.getElementById('loraName')
         const cpEl = document.getElementById('ckptName')
+
+        const state = {
+            accounts: [],
+            selectedId: '',
+            posting: false
+        }
+
+        const setStatus = (message, type = 'info') => {
+            statusLine.textContent = message
+            statusLine.dataset.type = type
+        }
 
         const setTheme = async () => {
             const theme = await eagle.app.theme
             document.body.setAttribute('theme', theme)
         }
 
-        const getSelectedItems = async () => {
-            const items = await eagle.item.get({ isSelected: true, fields: ['tags'] })
+        const getSelectedItems = async (extraFields = []) => {
+            const fields = Array.from(new Set(['tags', ...extraFields]))
+            const items = await eagle.item.get({ isSelected: true, fields })
             if (!items) return []
             return Array.isArray(items) ? items : [items]
         }
@@ -224,9 +262,94 @@
             return currentKey
         }
 
+        const validateAccount = account => {
+            if (!account || !account.id || !account.auth) return false
+            const { consumerKey, consumerSecret, accessToken, accessTokenSecret } = account.auth
+            return Boolean(consumerKey && consumerSecret && accessToken && accessTokenSecret)
+        }
+
+        const loadAccounts = async () => {
+            try {
+                setStatus('auth.json を読み込み中...')
+                const raw = await fs.promises.readFile(ACCOUNTS_PATH, 'utf8')
+                const parsed = JSON.parse(raw)
+                if (!Array.isArray(parsed)) throw new Error('配列形式ではありません')
+                const validAccounts = parsed.filter(validateAccount)
+                if (!validAccounts.length) throw new Error('有効なアカウントがありません')
+                state.accounts = validAccounts
+                accountSelect.innerHTML = ''
+                const placeholder = document.createElement('option')
+                placeholder.value = ''
+                placeholder.textContent = 'IDを選択'
+                accountSelect.appendChild(placeholder)
+                validAccounts.forEach(acc => {
+                    const opt = document.createElement('option')
+                    opt.value = acc.id
+                    opt.textContent = acc.id
+                    accountSelect.appendChild(opt)
+                })
+                const first = validAccounts[0]
+                state.selectedId = first.id
+                accountSelect.value = first.id
+                postButton.disabled = false
+                setStatus(`投稿先: ${first.id}`)
+            } catch (err) {
+                postButton.disabled = true
+                setStatus(`auth.json 読み込み失敗: ${err.message}`, 'error')
+            }
+        }
+
+        const toLocalPath = value => {
+            if (!value) return value
+            if (value.startsWith('file://')) return decodeURIComponent(value.replace('file://', ''))
+            return value
+        }
+
+        const getSingleSelectedItem = async () => {
+            const items = await getSelectedItems(['id', 'name', 'ext', 'path', 'filePath', 'url', 'originPath', 'folderPath'])
+            if (!items.length) throw new Error('画像が選択されていません')
+            const item = items[0]
+            console.log('[EXinfo] selected item:', item)
+            console.log('[EXinfo] item keys:', Object.keys(item || {}))
+
+            const query = new URLSearchParams(location.search)
+            const queryPathRaw = query.get('path')
+            const queryPath = queryPathRaw ? decodeURIComponent(queryPathRaw) : ''
+            if (queryPath) console.log('[EXinfo] query path:', queryPath)
+
+            const resolvedPathRaw =
+                item.path ||
+                item.filePath ||
+                item.originPath ||
+                item.url ||
+                queryPath
+
+            const resolvedPath = toLocalPath(resolvedPathRaw)
+            console.log('[EXinfo] resolved path:', resolvedPath)
+
+            if (!resolvedPath) throw new Error('画像パス/URLを取得できませんでした')
+            return { ...item, path: resolvedPath }
+        }
+
+        const runPostScript = ({ imagePath, text }) =>
+            new Promise((resolve, reject) => {
+                const args = ['--image', imagePath, '--text', text]
+                console.log('[EXinfo] execFile node', POST_SCRIPT, args)
+                execFile('node', [POST_SCRIPT, ...args], { timeout: 120000 }, (error, stdout, stderr) => {
+                    if (stdout) console.log('[EXinfo] post stdout:', stdout)
+                    if (stderr) console.error('[EXinfo] post stderr:', stderr)
+                    if (error) {
+                        reject(error)
+                    } else {
+                        resolve(stdout)
+                    }
+                })
+            })
+
         const init = async () => {
             await setTheme()
             await updateInfo(true)
+            await loadAccounts()
             setTimeout(() => {
                 updateInfo()
             }, 1000)
@@ -240,16 +363,37 @@
             document.body.setAttribute('theme', theme)
         })
 
-        document.getElementById('postX').addEventListener('click', () => {
-            alert('ボタン clicked')
-            console.log('ボタン clicked')
+        accountSelect.addEventListener('change', e => {
+            state.selectedId = e.target.value
+            postButton.disabled = !state.selectedId || state.posting
+            if (!state.selectedId) {
+                setStatus('投稿先IDを選択してください', 'warn')
+            } else {
+                setStatus(`投稿先: ${state.selectedId}`)
+            }
         })
 
-        document.getElementById('selectID').addEventListener('change', e => {
-            const value = e.target.value
-            if (!value) return
-            alert(`選択: ${value}`)
-            console.log('selected option:', value)
+        postButton.addEventListener('click', async () => {
+            if (state.posting) return
+            if (!state.selectedId) {
+                setStatus('投稿先IDを選択してください', 'warn')
+                return
+            }
+            try {
+                state.posting = true
+                postButton.disabled = true
+                setStatus('X に投稿中...')
+                const item = await getSingleSelectedItem()
+                const text = item.name || 'Shared from Eagle'
+                await runPostScript({ imagePath: item.path, text })
+                setStatus('投稿完了（CLI経由）', 'success')
+            } catch (err) {
+                console.error('[EXinfo] post error:', err)
+                setStatus(`投稿に失敗しました: ${err.message}`, 'error')
+            } finally {
+                state.posting = false
+                postButton.disabled = !state.selectedId
+            }
         })
     </script>
 </body>
