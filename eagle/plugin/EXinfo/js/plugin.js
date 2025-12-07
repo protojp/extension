@@ -1,10 +1,11 @@
 const fs = require('fs')
 const path = require('path')
-const { execFile } = require('child_process')
+const os = require('os')
+const { execFile, spawn } = require('child_process')
 
-// 投稿処理は外部の post.js を CLI 実行で呼び出す
 const POST_SCRIPT = 'C:\\github\\protojp\\sns\\accounts\\x\\post.js'
 const ACCOUNTS_PATH = 'C:\\github\\protojp\\sns\\accounts\\x\\auth.json'
+const STATUS_PATH = 'C:\\github\\protojp\\eagle\\plugin\\EXinfo\\status.json'
 
 const state = {
   accounts: [],
@@ -17,6 +18,8 @@ let postButton
 let statusLine
 let loraEl
 let cpEl
+
+const makeRunId = () => `run_${Date.now()}_${Math.floor(Math.random() * 10000)}`
 
 const setStatus = (message, type = 'info') => {
   if (!statusLine) return
@@ -148,6 +151,52 @@ const getResolvedItems = async () => {
     .filter(Boolean)
 }
 
+const readStatus = async () => {
+  try {
+    const raw = await fs.promises.readFile(STATUS_PATH, 'utf8')
+    console.log('[EXinfo] readStatus path:', STATUS_PATH)
+    console.log('[EXinfo] readStatus raw:', raw)
+    return JSON.parse(raw)
+  } catch {
+    console.warn('[EXinfo] readStatus fallback idle (file not found or parse error)')
+    return { state: 'idle' }
+  }
+}
+
+const writeStatus = async status => {
+  try {
+    await fs.promises.writeFile(
+      STATUS_PATH,
+      JSON.stringify({ ...status, updatedAt: new Date().toISOString() }, null, 2),
+      'utf8'
+    )
+    console.log('[EXinfo] writeStatus:', status)
+  } catch (err) {
+    console.error('[EXinfo] writeStatus failed:', err)
+  }
+}
+
+const getAgeMs = status => {
+  if (!status || !status.updatedAt) return null
+  const t = new Date(status.updatedAt).getTime()
+  if (Number.isNaN(t)) return null
+  return Date.now() - t
+}
+
+const isStaleRunning = status => {
+  if (status.state !== 'running') return false
+  const ageMs = getAgeMs(status)
+  if (ageMs == null) return false
+  return ageMs > 180000 // 3 minutes
+}
+
+const isStaleDone = status => {
+  if (status.state !== 'done') return false
+  const ageMs = getAgeMs(status)
+  if (ageMs == null) return false
+  return ageMs > 180000 // 3 minutes
+}
+
 const getSingleSelectedItem = async () => {
   const resolved = await getResolvedItems()
   if (!resolved.length) throw new Error('画像が選択されていません')
@@ -204,9 +253,9 @@ const buildPostText = item => {
   return JSON.stringify(payload)
 }
 
-const postViaCli = async (item, textOverride) => {
-  const text = textOverride || buildPostText(item)
-  const args = [POST_SCRIPT, '--image', item.path, '--text', text, '--skip-verify']
+const postViaCliSingle = async item => {
+  const text = buildPostText(item)
+  const args = [POST_SCRIPT, '--image', item.path, '--text', text]
   return new Promise((resolve, reject) => {
     execFile('node', args, { timeout: 120000 }, (error, stdout, stderr) => {
       if (stdout) console.log('[EXinfo] post stdout:', stdout)
@@ -229,25 +278,53 @@ const postViaCli = async (item, textOverride) => {
   })
 }
 
-const sleep = ms => new Promise(resolve => setTimeout(resolve, ms))
-
-const postMultiple = async items => {
+const postViaCliList = async items => {
   const total = Math.min(items.length, 20)
-  setStatus(`連続投稿を開始します（${total}枚まで）...`)
-  for (let i = 0; i < total; i++) {
-    const item = items[i]
-    const idx = i + 1
-    setStatus(`連続投稿中：${idx}/${total} 投稿処理中...`)
-    const tweetUrl = await postViaCli(item)
-    const prefix = tweetUrl ? `完了:${tweetUrl.split("/").pop()}` : '完了（ID未取得）'
-    console.log(`[EXinfo] 連続投稿中：${idx}/${total} ${prefix}`)
-    setStatus(`連続📤:${idx}/${total} ${prefix}`)
-    if (i < total - 1) {
-      const wait = 20000 + Math.floor(Math.random() * (15000 - 5000 + 1)) + 5000
-      await sleep(wait)
-    }
+  const runId = makeRunId()
+  await writeStatus({ runId, state: 'running', total, done: 0, message: `連続投稿を開始します（${total}枚まで）...` })
+  const payload = {
+    items: items.slice(0, total).map(it => ({ image: it.path, text: buildPostText(it) })),
+    waitMs: 20000,
+    waitJitterMinMs: 5000,
+    waitJitterMaxMs: 15000,
+    limit: total,
+    skipVerify: true
   }
-  setStatus(`連続投稿${total}枚完了`, 'success')
+  const tmpPath = path.join(os.tmpdir(), `exinfo_list_${Date.now()}.json`)
+  await fs.promises.writeFile(tmpPath, JSON.stringify(payload), 'utf8')
+  return new Promise((resolve, reject) => {
+    const proc = spawn('node', [POST_SCRIPT, '--list', tmpPath], { timeout: 180000 })
+    proc.stdout.on('data', data => {
+      const text = data.toString()
+      console.log('[EXinfo] post stdout:', text)
+      text.split(/\r?\n/).forEach(line => {
+        if (!line.trim()) return
+        if (line.includes('連続投稿中：')) {
+          setStatus(line.trim())
+          writeStatus({ runId, state: 'running', total, message: line.trim() })
+        } else if (line.includes('連続投稿')) {
+          setStatus(line.trim(), 'success')
+          writeStatus({ runId, state: 'done', total, done: total, message: line.trim() })
+        }
+      })
+    })
+    proc.stderr.on('data', data => {
+      console.error('[EXinfo] post stderr:', data.toString())
+    })
+    proc.on('error', err => {
+      writeStatus({ runId, state: 'error', message: err.message })
+      reject(err)
+    })
+    proc.on('close', code => {
+      fs.promises.unlink(tmpPath).catch(() => {})
+      if (code === 0) {
+        resolve()
+      } else {
+        writeStatus({ runId, state: 'error', message: `連続投稿プロセスが終了コード ${code} で終了しました` })
+        reject(new Error(`連続投稿プロセスが終了コード ${code} で終了しました`))
+      }
+    })
+  })
 }
 
 const init = async () => {
@@ -269,6 +346,48 @@ const init = async () => {
   setTimeout(() => {
     updateInfo()
   }, 1000)
+
+  const status = await readStatus()
+  console.log('[EXinfo] initial status:', status)
+  if (status.state === 'running') {
+    setControlsEnabled(false)
+    setStatus(status.message || '連続投稿を継続中...', 'warn')
+  }
+
+  let pollCount = 0
+  const pollTimer = setInterval(async () => {
+    pollCount += 1
+    if (pollCount > 180) {
+      console.log('[EXinfo] status poll stop (max count reached)')
+      clearInterval(pollTimer)
+      return
+    }
+    const s = await readStatus()
+    console.log('[EXinfo] status poll:', pollCount, s)
+    if (s.state === 'running') {
+      if (isStaleRunning(s)) {
+        setControlsEnabled(true)
+        setStatus('連続投稿状態が更新されていません。操作を再開できます。', 'warn')
+        clearInterval(pollTimer)
+      } else {
+        setControlsEnabled(false)
+        setStatus(s.message || '連続投稿を継続中...', 'warn')
+      }
+    } else {
+      if (isStaleDone(s)) {
+        await writeStatus({ state: 'idle', message: '状態をリセットしました' })
+        setStatus('状態をリセットしました', 'info')
+        setControlsEnabled(true)
+        clearInterval(pollTimer)
+        return
+      }
+      if (s.message) setStatus(s.message, s.state === 'error' ? 'error' : 'success')
+      setControlsEnabled(true)
+      if (s.state !== 'idle') {
+        clearInterval(pollTimer)
+      }
+    }
+  }, 2000)
 
   eagle.onThemeChanged(theme => {
     document.body.setAttribute('theme', theme)
@@ -297,9 +416,9 @@ const init = async () => {
       if (!items.length) throw new Error('画像が選択されていません')
       if (items.length === 1) {
         setStatus('X に投稿中...')
-        const tweetUrl = await postViaCli(items[0])
+        const tweetUrl = await postViaCliSingle(items[0])
         if (tweetUrl) {
-          setStatus(`投稿完了: ${tweetUrl}`, 'success')
+          setStatus(`投稿完了: ${tweetUrl.split("/").pop()}`, 'success')
         } else {
           setStatus('投稿完了（ID未取得）', 'warn')
         }
@@ -309,7 +428,11 @@ const init = async () => {
         if (!ok) {
           setStatus('投稿をキャンセルしました', 'warn')
         } else {
-          await postMultiple(items.slice(0, total))
+          await postViaCliList(items.slice(0, total))
+          const statusAfter = await readStatus()
+          if (statusAfter.state === 'running') {
+            setStatus(statusAfter.message || '連続投稿を継続中...', 'warn')
+          }
         }
       }
     } catch (err) {
@@ -333,5 +456,5 @@ window.EXinfoPlugin = {
   state,
   loadAccounts,
   getSingleSelectedItem,
-  postViaCli
+  postViaCli: postViaCliSingle
 }
