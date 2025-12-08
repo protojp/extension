@@ -176,6 +176,17 @@ const writeStatus = async status => {
   }
 }
 
+const writeStatusMerge = async partial => {
+  try {
+    const current = await readStatus()
+    const merged = { ...current, ...partial, updatedAt: new Date().toISOString() }
+    await fs.promises.writeFile(STATUS_PATH, JSON.stringify(merged, null, 2), 'utf8')
+    console.log('[EXinfo] writeStatusMerge:', merged)
+  } catch (err) {
+    console.error('[EXinfo] writeStatusMerge failed:', err)
+  }
+}
+
 const getAgeMs = status => {
   if (!status || !status.updatedAt) return null
   const t = new Date(status.updatedAt).getTime()
@@ -192,6 +203,12 @@ const isStaleRunning = status => {
 
 const isStaleDone = status => {
   if (status.state !== 'done') return false
+  const ageMs = getAgeMs(status)
+  if (ageMs == null) return false
+  return ageMs > 180000 // 3 minutes
+}
+
+const isStaleAny = status => {
   const ageMs = getAgeMs(status)
   if (ageMs == null) return false
   return ageMs > 180000 // 3 minutes
@@ -264,11 +281,11 @@ const postViaCliSingle = async item => {
         reject(error)
       } else {
         try {
-          const match = stdout.match(/tweet URL:\s*(https?:\/\/\S+)/i)
-          if (match) {
-            resolve(match[1])
-            return
-          }
+          const matchId = stdout.match(/tweet ID:\s*([^\s]+)/i)
+          const matchUrl = stdout.match(/tweet URL:\s*(https?:\/\/\S+)/i)
+          const tweetId = matchId?.[1] || (matchUrl ? matchUrl[1].split('/').pop() : null)
+          resolve(tweetId)
+          return
         } catch (_) {
           // ignore parse error
         }
@@ -284,9 +301,8 @@ const postViaCliList = async items => {
   await writeStatus({ runId, state: 'running', total, done: 0, message: `連続投稿を開始します（${total}枚まで）...` })
   const payload = {
     items: items.slice(0, total).map(it => ({ image: it.path, text: buildPostText(it) })),
-    waitMs: 20000,
-    waitJitterMinMs: 5000,
-    waitJitterMaxMs: 15000,
+    waitMs: 40000,
+    waitJitter: 30000,
     limit: total,
     skipVerify: true,
     accountId: state.selectedId
@@ -350,9 +366,20 @@ const init = async () => {
 
   const status = await readStatus()
   console.log('[EXinfo] initial status:', status)
-  if (status.state === 'running') {
-    setControlsEnabled(false)
-    setStatus(status.message || '連続投稿を継続中...', 'warn')
+  if (isStaleAny(status)) {
+    await writeStatusMerge({ state: 'idle', message: '' })
+    setStatus('投稿待機中', 'info')
+  } else {
+    if (status.selectedId && state.accounts.find(a => a.id === status.selectedId)) {
+      state.selectedId = status.selectedId
+      accountSelect.value = status.selectedId
+    }
+    if (status.state === 'running') {
+      setControlsEnabled(false)
+      setStatus(status.message || '連続投稿を継続中...', 'warn')
+    } else if (status.state !== 'idle' && status.message) {
+      setStatus(status.message, status.state === 'error' ? 'error' : 'success')
+    }
   }
 
   let pollCount = 0
@@ -365,6 +392,13 @@ const init = async () => {
     }
     const s = await readStatus()
     console.log('[EXinfo] status poll:', pollCount, s)
+    if (isStaleAny(s)) {
+      await writeStatus({ state: 'idle', message: '' })
+      setStatus('投稿待機中', 'info')
+      setControlsEnabled(true)
+      clearInterval(pollTimer)
+      return
+    }
     if (s.state === 'running') {
       if (isStaleRunning(s)) {
         setControlsEnabled(true)
@@ -397,6 +431,7 @@ const init = async () => {
   accountSelect.addEventListener('change', e => {
     state.selectedId = e.target.value
     setControlsEnabled(!state.posting && !!state.selectedId)
+    writeStatusMerge({ selectedId: state.selectedId })
     if (!state.selectedId) {
       setStatus('投稿先IDを選択してください', 'warn')
     } else {

@@ -1,8 +1,6 @@
 {
-  "runId": "run_1765084371048",
-  "state": "done",
-  "total": 2,
-  "done": 2,
-  "message": "連続投稿2枚完了",
-  "updatedAt": "2025-12-07T05:13:28.437Z"
+  "state": "idle",
+  "message": "",
+  "updatedAt": "2025-12-08T00:27:18.342Z",
+  "selectedId": "S_B_Check"
 }
