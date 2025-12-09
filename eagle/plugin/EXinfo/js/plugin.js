@@ -214,6 +214,15 @@ const isStaleAny = status => {
   return ageMs > 180000 // 3 minutes
 }
 
+const applySelectedIdFromStatus = status => {
+  if (!status || !status.selectedId || !accountSelect) return
+  const found = state.accounts.find(a => a.id === status.selectedId)
+  if (found) {
+    state.selectedId = status.selectedId
+    accountSelect.value = status.selectedId
+  }
+}
+
 const getSingleSelectedItem = async () => {
   const resolved = await getResolvedItems()
   if (!resolved.length) throw new Error('画像が選択されていません')
@@ -366,14 +375,11 @@ const init = async () => {
 
   const status = await readStatus()
   console.log('[EXinfo] initial status:', status)
+  applySelectedIdFromStatus(status)
   if (isStaleAny(status)) {
-    await writeStatusMerge({ state: 'idle', message: '' })
+    await writeStatusMerge({ state: 'idle', message: '', selectedId: state.selectedId })
     setStatus('投稿待機中', 'info')
   } else {
-    if (status.selectedId && state.accounts.find(a => a.id === status.selectedId)) {
-      state.selectedId = status.selectedId
-      accountSelect.value = status.selectedId
-    }
     if (status.state === 'running') {
       setControlsEnabled(false)
       setStatus(status.message || '連続投稿を継続中...', 'warn')
@@ -393,7 +399,11 @@ const init = async () => {
     const s = await readStatus()
     console.log('[EXinfo] status poll:', pollCount, s)
     if (isStaleAny(s)) {
-      await writeStatus({ state: 'idle', message: '' })
+      await writeStatus({
+        state: 'idle',
+        message: '',
+        selectedId: state.selectedId || s.selectedId || ''
+      })
       setStatus('投稿待機中', 'info')
       setControlsEnabled(true)
       clearInterval(pollTimer)
@@ -410,7 +420,7 @@ const init = async () => {
       }
     } else {
       if (isStaleDone(s)) {
-        await writeStatus({ state: 'idle', message: '' })
+        await writeStatus({ state: 'idle', message: '', selectedId: state.selectedId || s.selectedId || '' })
         setStatus('投稿待機中', 'info')
         setControlsEnabled(true)
         clearInterval(pollTimer)
